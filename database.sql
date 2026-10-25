@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS `products` (
   `is_available` TINYINT(1) DEFAULT 1,
   `stock_quantity` INT DEFAULT 10,
   `color` VARCHAR(100) DEFAULT '',
+  `front_image` VARCHAR(500) DEFAULT '',
+  `side_image` VARCHAR(500) DEFAULT '',
   `buy_url` VARCHAR(500) DEFAULT '',
   `description` TEXT,
   `sort_order` INT DEFAULT 0,
@@ -66,14 +68,14 @@ INSERT INTO `admin_users` (`username`, `password_hash`) VALUES
 ON DUPLICATE KEY UPDATE `password_hash` = VALUES(`password_hash`);
 
 -- محصولات اولیه منطبق بر رگال متحرک سایت
-INSERT INTO `products` (`slug`, `title`, `title_fa`, `price`, `currency`, `is_available`, `stock_quantity`, `color`, `buy_url`, `description`, `sort_order`) VALUES
-('crimson-memory', 'Crimson Memory LS Shirt', 'پیراهن آستین بلند کریمسون', 1250000, 'تومان', 1, 8, 'White', '', 'پیراهن آستین بلند نخی با کیفیت عالی و دوخت سفارشی', 1),
-('its-us-tee', 'It\'s Us Never Them Tee', 'تی‌شرت مشکی/صورتی/زرد It\'s Us', 890000, 'تومان', 1, 15, 'Black / Pink / Yellow', '', 'تی‌شرت اورسایز صددرصد پنبه با چاپ سیلک برجسته', 2),
-('tank', 'Distressed Painted Logo Tank Top', 'تاپ بدون آستین وینتیج', 750000, 'تومان', 1, 10, 'Black / Sand', '', 'تاپ راحتی شسته شده به سبک وینتیج با لوگوی آرت ورک', 3),
-('varsity', 'Snug Wrld Logo Varsity Jacket', 'ژاکت ورسیتی مشکی لوگودار', 2450000, 'تومان', 1, 4, 'Black', '', 'کاپشن بیسبالی ورسیتی کژوال با آستر گرم و دوخت باکیفیت', 4),
-('distressed-logo-t', 'Distressed Logo Print T-Shirt', 'تی‌شرت چاپی دیسترسد آبی', 920000, 'تومان', 1, 12, 'Blue', '', 'تی‌شرت آستین کوتاه طرح کلاسیک با پارچه نرم و تنفس‌پذیر', 5),
-('jersey', 'Snug Football Jersey', 'لباس ورزشی زرد/آبی فوتبالی', 1100000, 'تومان', 1, 7, 'Yellow / Blue', '', 'پیراهن ورزشی استریت‌استایل با تن‌خور آزاد و جنس تنفس‌پذیر', 6),
-('silicone-tee', 'Silicone Logo Print T-Shirt', 'تی‌شرت سیلیکونی سفید', 880000, 'تومان', 1, 9, 'White', '', 'تی‌شرت یقه گرد مینیمال با پچ سیلیکونی برجسته', 7)
+INSERT INTO `products` (`slug`, `title`, `title_fa`, `price`, `currency`, `is_available`, `stock_quantity`, `color`, `front_image`, `side_image`, `buy_url`, `description`, `sort_order`) VALUES
+('crimson-memory', 'Crimson Memory LS Shirt', 'پیراهن آستین بلند کریمسون', 1250000, 'تومان', 1, 8, 'White', '', '', '', 'پیراهن آستین بلند نخی با کیفیت عالی و دوخت سفارشی', 1),
+('its-us-tee', 'It\'s Us Never Them Tee', 'تی‌شرت مشکی/صورتی/زرد It\'s Us', 890000, 'تومان', 1, 15, 'Black / Pink / Yellow', '', '', '', 'تی‌شرت اورسایز صددرصد پنبه با چاپ سیلک برجسته', 2),
+('tank', 'Distressed Painted Logo Tank Top', 'تاپ بدون آستین وینتیج', 750000, 'تومان', 1, 10, 'Black / Sand', '', '', '', 'تاپ راحتی شسته شده به سبک وینتیج با لوگوی آرت ورک', 3),
+('varsity', 'Snug Wrld Logo Varsity Jacket', 'ژاکت ورسیتی مشکی لوگودار', 2450000, 'تومان', 1, 4, 'Black', '', '', '', 'کاپشن بیسبالی ورسیتی کژوال با آستر گرم و دوخت باکیفیت', 4),
+('distressed-logo-t', 'Distressed Logo Print T-Shirt', 'تی‌شرت چاپی دیسترسد آبی', 920000, 'تومان', 1, 12, 'Blue', '', '', '', 'تی‌شرت آستین کوتاه طرح کلاسیک با پارچه نرم و تنفس‌پذیر', 5),
+('jersey', 'Snug Football Jersey', 'لباس ورزشی زرد/آبی فوتبالی', 1100000, 'تومان', 1, 7, 'Yellow / Blue', '', '', '', 'پیراهن ورزشی استریت‌استایل با تن‌خور آزاد و جنس تنفس‌پذیر', 6),
+('silicone-tee', 'Silicone Logo Print T-Shirt', 'تی‌شرت سیلیکونی سفید', 880000, 'تومان', 1, 9, 'White', '', '', '', 'تی‌شرت یقه گرد مینیمال با پچ سیلیکونی برجسته', 7)
 ON DUPLICATE KEY UPDATE `title` = VALUES(`title`);
 
 SET FOREIGN_KEY_CHECKS = 1;

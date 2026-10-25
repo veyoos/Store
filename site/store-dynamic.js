@@ -1,7 +1,6 @@
 /**
  * store-dynamic.js
- * اتصال فرانت‌اند رگال به پایگاه داده MySQL و سیستم ثبت سفارش
- * ایمن‌سازی شده جهت جلوگیری از هرگونه تداخل با هیدریشن React و Next.js
+ * اتصال فرانت‌اند رگال به پایگاه داده MySQL، مدیریت محصولات پویا و سیستم ثبت سفارش
  */
 (function() {
     'use strict';
@@ -33,6 +32,7 @@
                         document.title = data.settings.store_title;
                     }
                 }
+                updateCatalogUI();
             }
         } catch (e) {
             console.warn("API fallback mode:", e);
@@ -91,39 +91,55 @@
             .badge-instock { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); }
             .badge-outstock { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
 
-            /* دکمه ورود به پنل مدیریت */
-            .admin-floating-link {
+            /* دکمه‌های شناور پایین صفحه */
+            .floating-actions-bar {
                 position: fixed;
                 bottom: 45px;
                 right: 16px;
-                background: rgba(15, 23, 42, 0.85);
-                backdrop-filter: blur(8px);
-                border: 1px solid rgba(255, 255, 255, 0.15);
-                color: #cbd5e1;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                z-index: 9999;
+                font-family: system-ui, -apple-system, sans-serif;
+            }
+            .floating-btn {
+                background: rgba(15, 23, 42, 0.88);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                color: #f1f5f9;
                 font-size: 12px;
-                padding: 6px 14px;
+                font-weight: 600;
+                padding: 8px 16px;
                 border-radius: 20px;
                 text-decoration: none;
-                z-index: 9999;
                 transition: all 0.2s;
                 display: flex;
                 align-items: center;
                 gap: 6px;
-                font-family: system-ui, sans-serif;
+                cursor: pointer;
+                box-shadow: 0 10px 20px rgba(0,0,0,0.3);
             }
-            .admin-floating-link:hover {
+            .floating-btn:hover {
                 background: #1e293b;
                 color: #fff;
                 transform: translateY(-2px);
+                border-color: rgba(255, 255, 255, 0.35);
+            }
+            .floating-btn-catalog {
+                background: #2563eb;
+                border-color: #3b82f6;
+            }
+            .floating-btn-catalog:hover {
+                background: #1d4ed8;
             }
 
             /* مودال ثبت سفارش */
-            .order-modal-backdrop {
+            .order-modal-backdrop, .catalog-modal-backdrop {
                 display: none;
                 position: fixed;
                 inset: 0;
                 background: rgba(0, 0, 0, 0.85);
-                backdrop-filter: blur(6px);
+                backdrop-filter: blur(8px);
                 z-index: 100000;
                 align-items: center;
                 justify-content: center;
@@ -142,22 +158,98 @@
                 box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
                 animation: modalFadeIn 0.25s ease-out;
             }
+            .catalog-modal {
+                background: #12141a;
+                border: 1px solid #282d3c;
+                border-radius: 16px;
+                width: 100%;
+                max-width: 900px;
+                max-height: 88vh;
+                display: flex;
+                flex-direction: column;
+                color: #f1f5f9;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+                animation: modalFadeIn 0.25s ease-out;
+            }
             @keyframes modalFadeIn {
                 from { opacity: 0; transform: scale(0.95); }
                 to { opacity: 1; transform: scale(1); }
             }
-            .order-modal-header {
+            .modal-header-bar {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                margin-bottom: 18px;
+                padding: 20px 24px;
                 border-bottom: 1px solid #1e2433;
-                padding-bottom: 12px;
             }
-            .order-modal-title { font-size: 17px; font-weight: 700; color: #fff; }
-            .order-modal-close {
-                background: none; border: none; color: #94a3b8; font-size: 24px; cursor: pointer; line-height: 1;
+            .modal-header-bar h3 { font-size: 18px; font-weight: 700; color: #fff; margin: 0; }
+            .modal-close-icon {
+                background: none; border: none; color: #94a3b8; font-size: 26px; cursor: pointer; line-height: 1;
             }
+            .modal-close-icon:hover { color: #fff; }
+
+            /* گرید محصولات در مودال کاتالوگ */
+            .catalog-grid {
+                padding: 20px 24px;
+                overflow-y: auto;
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+                gap: 18px;
+            }
+            .catalog-card {
+                background: #171a23;
+                border: 1px solid #242938;
+                border-radius: 12px;
+                padding: 14px;
+                display: flex;
+                flex-direction: column;
+                transition: transform 0.2s, border-color 0.2s;
+            }
+            .catalog-card:hover {
+                transform: translateY(-3px);
+                border-color: #3b82f6;
+            }
+            .catalog-img-wrap {
+                width: 100%;
+                height: 200px;
+                background: #0b0d12;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+                margin-bottom: 12px;
+            }
+            .catalog-img-wrap img {
+                max-width: 90%;
+                max-height: 90%;
+                object-fit: contain;
+            }
+            .catalog-card-title { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+            .catalog-card-fa { font-size: 13px; color: #94a3b8; margin-bottom: 8px; }
+            .catalog-card-footer {
+                margin-top: auto;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding-top: 10px;
+                border-top: 1px solid #202534;
+            }
+            .catalog-card-price { font-size: 15px; font-weight: 700; color: #22c55e; }
+            .catalog-card-btn {
+                background: #2563eb;
+                color: #fff;
+                border: none;
+                border-radius: 6px;
+                padding: 6px 12px;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            .catalog-card-btn:hover { background: #1d4ed8; }
+
+            /* فرم سفارش */
             .order-product-card {
                 background: #1a1e29;
                 border-radius: 10px;
@@ -209,16 +301,16 @@
         document.head.appendChild(style);
     }
 
-    // ۳. ایجاد مودال ثبت سفارش در صفحه
+    // ۳. ایجاد مودال ثبت سفارش
     function createOrderModal() {
         if (document.getElementById('orderModalBackdrop')) return;
 
         const modalHtml = `
             <div class="order-modal-backdrop" id="orderModalBackdrop">
                 <div class="order-modal">
-                    <div class="order-modal-header">
-                        <span class="order-modal-title">🛍️ ثبت سفارش آنلاین</span>
-                        <button class="order-modal-close" id="orderModalCloseBtn">&times;</button>
+                    <div class="modal-header-bar" style="padding: 0 0 14px 0; margin-bottom: 16px;">
+                        <span style="font-size: 17px; font-weight: 700; color: #fff;">🛍️ ثبت سفارش آنلاین</span>
+                        <button class="modal-close-icon" id="orderModalCloseBtn">&times;</button>
                     </div>
                     <div class="order-product-card">
                         <div>
@@ -327,10 +419,10 @@
         createOrderModal();
         try {
             document.getElementById('orderProdId').value = product.id || '';
-            document.getElementById('orderProdTitle').value = product.title || '';
+            document.getElementById('orderProdTitle').value = product.title_fa || product.title || '';
             document.getElementById('orderModalProdName').innerText = product.title || '';
             document.getElementById('orderModalProdFa').innerText = product.title_fa || product.color || '';
-            document.getElementById('orderModalProdPrice').innerText = product.formatted_price || (product.price ? product.price + ' تومان' : 'تماس بگیرید');
+            document.getElementById('orderModalProdPrice').innerText = product.formatted_price || (product.price ? product.price.toLocaleString() + ' ' + (product.currency || 'تومان') : 'تماس بگیرید');
             
             const msgBox = document.getElementById('orderResultMsg');
             if (msgBox) msgBox.style.display = 'none';
@@ -345,21 +437,139 @@
         if (modal) modal.style.display = 'none';
     }
 
-    // ۴. افزودن دکمه شناور مدیریت فروشگاه
-    function addAdminButton() {
-        if (document.getElementById('adminFloatingBtn')) return;
+    // ۴. ایجاد مودال کالکشن کامل محصولات
+    function createCatalogModal() {
+        if (document.getElementById('catalogModalBackdrop')) return;
+
+        const modalHtml = `
+            <div class="catalog-modal-backdrop" id="catalogModalBackdrop">
+                <div class="catalog-modal">
+                    <div class="modal-header-bar">
+                        <h3>📦 کالکشن کامل لباس‌های فروشگاه</h3>
+                        <button class="modal-close-icon" id="catalogModalCloseBtn">&times;</button>
+                    </div>
+                    <div class="catalog-grid" id="catalogGrid">
+                        <!-- کارت‌های محصولات به صورت پویا اضافه می‌شوند -->
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const div = document.createElement('div');
+        div.innerHTML = modalHtml;
+        document.body.appendChild(div.firstElementChild);
+
+        const closeBtn = document.getElementById('catalogModalCloseBtn');
+        if (closeBtn) closeBtn.addEventListener('click', closeCatalogModal);
+
+        const backdrop = document.getElementById('catalogModalBackdrop');
+        if (backdrop) {
+            backdrop.addEventListener('click', function(e) {
+                if (e.target === this) closeCatalogModal();
+            });
+        }
+    }
+
+    function openCatalogModal() {
+        createCatalogModal();
+        renderCatalogCards();
+        const backdrop = document.getElementById('catalogModalBackdrop');
+        if (backdrop) backdrop.style.display = 'flex';
+    }
+
+    function closeCatalogModal() {
+        const backdrop = document.getElementById('catalogModalBackdrop');
+        if (backdrop) backdrop.style.display = 'none';
+    }
+
+    function renderCatalogCards() {
+        const grid = document.getElementById('catalogGrid');
+        if (!grid) return;
+
+        const base = getBasePath();
+        grid.innerHTML = '';
+
+        if (!storeData.products || storeData.products.length === 0) {
+            grid.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;grid-column:1/-1;">محصولی یافت نشد.</div>';
+            return;
+        }
+
+        storeData.products.forEach(p => {
+            let imgSrc = '';
+            if (p.front_image) {
+                imgSrc = base + p.front_image;
+            } else {
+                imgSrc = base + '_next/image?url=%2Fproducts%2F' + encodeURIComponent(p.slug) + '-front.webp&w=384&q=75';
+            }
+
+            const card = document.createElement('div');
+            card.className = 'catalog-card';
+            card.innerHTML = `
+                <div class="catalog-img-wrap">
+                    <img src="${imgSrc}" onerror="this.src='${base}_next/image?url=%2Fproducts%2F${encodeURIComponent(p.slug)}-side.webp&w=384&q=75'">
+                </div>
+                <div class="catalog-card-title">${p.title}</div>
+                <div class="catalog-card-fa">${p.title_fa || p.color || ''}</div>
+                <div style="font-size: 12px; color: #94a3b8; margin-bottom: 8px;">
+                    ${p.is_available ? '<span style="color:#4ade80;">● موجود در انبار</span>' : '<span style="color:#f87171;">● ناموجود</span>'}
+                    ${p.color ? ' | رنگ: ' + p.color : ''}
+                </div>
+                <div class="catalog-card-footer">
+                    <div class="catalog-card-price">${p.formatted_price || (p.price.toLocaleString() + ' ' + (p.currency || 'تومان'))}</div>
+                    <button class="catalog-card-btn" data-slug="${p.slug}">🛍️ سفارش</button>
+                </div>
+            `;
+
+            card.querySelector('.catalog-card-btn').addEventListener('click', () => {
+                closeCatalogModal();
+                if (p.buy_url && p.buy_url.trim() !== '') {
+                    window.open(p.buy_url, '_blank');
+                } else {
+                    openOrderModal(p);
+                }
+            });
+
+            grid.appendChild(card);
+        });
+    }
+
+    function updateCatalogUI() {
+        const btn = document.getElementById('catalogFloatingBtn');
+        if (btn && storeData.products) {
+            btn.innerHTML = `📦 <span>مشاهده همه محصولات (${storeData.products.length})</span>`;
+        }
+    }
+
+    // ۵. افزودن دکمه‌های شناور (مشاهده محصولات + پنل مدیریت)
+    function addFloatingButtons() {
+        if (document.getElementById('floatingActionsBar')) return;
         try {
-            const link = document.createElement('a');
-            link.id = 'adminFloatingBtn';
-            link.className = 'admin-floating-link';
-            link.href = getBasePath() + 'admin/';
-            link.target = '_blank';
-            link.innerHTML = '⚙️ <span>پنل مدیریت دیتابیس</span>';
-            document.body.appendChild(link);
+            const bar = document.createElement('div');
+            bar.id = 'floatingActionsBar';
+            bar.className = 'floating-actions-bar';
+
+            // دکمه کاتالوگ محصولات
+            const catalogBtn = document.createElement('button');
+            catalogBtn.id = 'catalogFloatingBtn';
+            catalogBtn.className = 'floating-btn floating-btn-catalog';
+            catalogBtn.innerHTML = '📦 <span>مشاهده همه محصولات</span>';
+            catalogBtn.addEventListener('click', openCatalogModal);
+
+            // دکمه پنل مدیریت
+            const adminLink = document.createElement('a');
+            adminLink.id = 'adminFloatingBtn';
+            adminLink.className = 'floating-btn';
+            adminLink.href = getBasePath() + 'admin/';
+            adminLink.target = '_blank';
+            adminLink.innerHTML = '⚙️ <span>پنل مدیریت</span>';
+
+            bar.appendChild(catalogBtn);
+            bar.appendChild(adminLink);
+            document.body.appendChild(bar);
         } catch (e) {}
     }
 
-    // ۵. اتصال داده‌های دیتابیس به پنجره Focus جزئیات محصول
+    // ۶. اتصال داده‌های دیتابیس به پنجره Focus جزئیات محصول در رگال
     function observeProductFocus() {
         try {
             const observer = new MutationObserver(function() {
@@ -432,11 +642,11 @@
         } catch (e) {}
     }
 
-    // راه‌اندازی پس از بارگذاری کامل صفحه تا مانع رندر فرانت نشود
+    // راه‌اندازی پس از بارگذاری کامل صفحه
     function init() {
         try {
             injectStyles();
-            addAdminButton();
+            addFloatingButtons();
             loadStoreData().then(() => {
                 observeProductFocus();
             });

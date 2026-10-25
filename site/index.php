@@ -35,6 +35,7 @@ if ($baseClean !== '/') {
     // اصلاح تمام ارجاعات /_next/ (شامل تمام عکس‌ها در srcset، فونت‌ها و اسکریپت‌ها)
     $html = str_replace('/_next/', $baseClean . '_next/', $html);
     $html = str_replace('href="/favicon.ico', 'href="' . $baseClean . 'favicon.ico', $html);
+    $html = str_replace('src="store-dynamic.js"', 'src="' . $baseClean . 'store-dynamic.js"', $html);
     $html = str_replace('src="/store-dynamic.js"', 'src="' . $baseClean . 'store-dynamic.js"', $html);
     $html = str_replace('href="/store-dynamic.js"', 'href="' . $baseClean . 'store-dynamic.js"', $html);
 
