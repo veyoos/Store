@@ -3,6 +3,13 @@
 
 <head>
     <meta charSet="utf-8" />
+    <script>
+        if (!window.STORE_BASE_PATH) {
+            var _p = window.location.pathname.replace(/\/index\.(html|php)$/i, '').replace(/\/+$/, '');
+            window.STORE_BASE_PATH = _p ? (_p + '/') : '/';
+            window.TURBOPACK_CHUNK_BASE_PATH = window.STORE_BASE_PATH + '_next/';
+        }
+    </script>
     <!-- This site is hosted on Netlify. Anyone can build and deploy a site
      like this one for free: https://netlify.new/?utm_campaign=loops&utm_source=ai-legible&utm_medium=owned&utm_content=comment&utm_id=675bb962-a914-4794-8b61-dd495eb2f297
      Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
@@ -354,6 +361,8 @@
     <script>
         self.__next_f.push([1, "18:false\n17:null\n"])
     </script>
+    <!-- اتصال پویا به دیتابیس MySQL و پنل مدیریت -->
+    <script src="/store-dynamic.js" defer></script>
 </body>
 
 </html>
