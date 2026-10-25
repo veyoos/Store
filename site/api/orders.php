@@ -1,7 +1,7 @@
 <?php
 /**
  * API: Submit Customer Order
- * ثبت سفارش جدید مشتری در پایگاه داده
+ * ثبت سفارش جدید مشتری در پایگاه داده با ثبت رنگ و سایز انتخابی
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -33,6 +33,8 @@ $customerPhone  = trim($input['phone'] ?? $input['customer_phone'] ?? '');
 $customerAddress= trim($input['address'] ?? $input['customer_address'] ?? '');
 $productTitle   = trim($input['product_title'] ?? $input['title'] ?? 'لباس از رگال');
 $productId      = !empty($input['product_id']) ? (int)$input['product_id'] : null;
+$selectedColor  = trim($input['selected_color'] ?? $input['color'] ?? '');
+$selectedSize   = trim($input['selected_size'] ?? $input['size'] ?? '');
 $notes          = trim($input['notes'] ?? '');
 
 if (empty($customerName) || empty($customerPhone)) {
@@ -46,8 +48,7 @@ if (empty($customerName) || empty($customerPhone)) {
 
 $db = get_db();
 if (!$db) {
-    // در صورتی که دیتابیس وصل نباشد، سفارش را در یک فایل متنی لاگ می‌کنیم تا گم نشود
-    $backupLog = date('Y-m-d H:i:s') . " | Name: $customerName | Phone: $customerPhone | Product: $productTitle | Address: $customerAddress\n";
+    $backupLog = date('Y-m-d H:i:s') . " | Name: $customerName | Phone: $customerPhone | Product: $productTitle | Color: $selectedColor | Size: $selectedSize | Address: $customerAddress\n";
     @file_put_contents(__DIR__ . '/../orders_backup.log', $backupLog, FILE_APPEND);
 
     echo json_encode([
@@ -59,8 +60,15 @@ if (!$db) {
 }
 
 try {
-    $stmt = $db->prepare("INSERT INTO orders (product_id, product_title, customer_name, customer_phone, customer_address, notes, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')");
-    $stmt->execute([$productId, $productTitle, $customerName, $customerPhone, $customerAddress, $notes]);
+    try {
+        $db->exec("ALTER TABLE orders ADD COLUMN selected_color VARCHAR(100) DEFAULT '' AFTER customer_address");
+    } catch (Exception $e) {}
+    try {
+        $db->exec("ALTER TABLE orders ADD COLUMN selected_size VARCHAR(50) DEFAULT '' AFTER selected_color");
+    } catch (Exception $e) {}
+
+    $stmt = $db->prepare("INSERT INTO orders (product_id, product_title, customer_name, customer_phone, customer_address, selected_color, selected_size, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')");
+    $stmt->execute([$productId, $productTitle, $customerName, $customerPhone, $customerAddress, $selectedColor, $selectedSize, $notes]);
     $orderId = $db->lastInsertId();
 
     echo json_encode([

@@ -35,8 +35,12 @@ $defaultProducts = [
         'is_available' => 1,
         'stock_quantity' => 8,
         'color' => 'White',
+        'sizes' => 'S,M,L,XL,XXL',
+        'colourways' => '',
         'buy_url' => '',
         'front_image' => '',
+        'side_image' => '',
+        'back_image' => '',
         'description' => 'پیراهن آستین بلند نخی با کیفیت عالی و دوخت سفارشی'
     ],
     [
@@ -49,8 +53,12 @@ $defaultProducts = [
         'is_available' => 1,
         'stock_quantity' => 15,
         'color' => 'Black / Pink / Yellow',
+        'sizes' => 'S,M,L,XL,XXL',
+        'colourways' => '',
         'buy_url' => '',
         'front_image' => '',
+        'side_image' => '',
+        'back_image' => '',
         'description' => 'تی‌شرت اورسایز صددرصد پنبه با چاپ سیلک برجسته'
     ],
     [
@@ -63,8 +71,12 @@ $defaultProducts = [
         'is_available' => 1,
         'stock_quantity' => 10,
         'color' => 'Black / Sand',
+        'sizes' => 'S,M,L,XL',
+        'colourways' => '',
         'buy_url' => '',
         'front_image' => '',
+        'side_image' => '',
+        'back_image' => '',
         'description' => 'تاپ راحتی شسته شده به سبک وینتیج با لوگوی آرت ورک'
     ],
     [
@@ -77,8 +89,12 @@ $defaultProducts = [
         'is_available' => 1,
         'stock_quantity' => 4,
         'color' => 'Black',
+        'sizes' => 'M,L,XL,XXL',
+        'colourways' => '',
         'buy_url' => '',
         'front_image' => '',
+        'side_image' => '',
+        'back_image' => '',
         'description' => 'کاپشن بیسبالی ورسیتی کژوال با آستر گرم و دوخت باکیفیت'
     ],
     [
@@ -91,8 +107,12 @@ $defaultProducts = [
         'is_available' => 1,
         'stock_quantity' => 12,
         'color' => 'Blue',
+        'sizes' => 'S,M,L,XL,XXL',
+        'colourways' => '',
         'buy_url' => '',
         'front_image' => '',
+        'side_image' => '',
+        'back_image' => '',
         'description' => 'تی‌شرت آستین کوتاه طرح کلاسیک با پارچه نرم و تنفس‌پذیر'
     ],
     [
@@ -105,8 +125,12 @@ $defaultProducts = [
         'is_available' => 1,
         'stock_quantity' => 7,
         'color' => 'Yellow / Blue',
+        'sizes' => 'M,L,XL,XXL',
+        'colourways' => '',
         'buy_url' => '',
         'front_image' => '',
+        'side_image' => '',
+        'back_image' => '',
         'description' => 'پیراهن ورزشی استریت‌استایل با تن‌خور آزاد و جنس تنفس‌پذیر'
     ],
     [
@@ -119,8 +143,12 @@ $defaultProducts = [
         'is_available' => 1,
         'stock_quantity' => 9,
         'color' => 'White',
+        'sizes' => 'S,M,L,XL',
+        'colourways' => '',
         'buy_url' => '',
         'front_image' => '',
+        'side_image' => '',
+        'back_image' => '',
         'description' => 'تی‌شرت یقه گرد مینیمال با پچ سیلیکونی برجسته'
     ]
 ];
@@ -143,6 +171,7 @@ if ($db) {
                 $p['is_available'] = (int)$p['is_available'];
                 $p['stock_quantity'] = (int)$p['stock_quantity'];
                 $p['formatted_price'] = number_format($p['price']) . ' ' . $p['currency'];
+                $p['sizes'] = !empty($p['sizes']) ? $p['sizes'] : 'S,M,L,XL,XXL';
                 if (!empty($p['front_image'])) {
                     $p['image_url'] = $p['front_image'];
                 } else {
