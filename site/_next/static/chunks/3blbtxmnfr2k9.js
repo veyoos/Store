@@ -6882,11 +6882,15 @@
                         }
                     }
 
-                    let front = p.front_image ? (p.front_image.startsWith('/') ? p.front_image : (base + p.front_image)) : `/products/${s}-front.webp`;
-                    let side = p.side_image ? (p.side_image.startsWith('/') ? p.side_image : (base + p.side_image)) : (p.front_image ? front : `/products/${s}-side.webp`);
+                    let cleanFront = p.front_image ? ('/' + p.front_image.replace(/^\/+/, '')) : '';
+                    let cleanSide = p.side_image ? ('/' + p.side_image.replace(/^\/+/, '')) : '';
+                    let front = cleanFront || `/products/${s}-front.webp`;
+                    let side = cleanSide || (cleanFront || `/products/${s}-side.webp`);
 
                     or[front] = defaultGeom;
                     or[side] = defaultGeom;
+                    or[front.replace(/^\/+/, '')] = defaultGeom;
+                    or[side.replace(/^\/+/, '')] = defaultGeom;
                     os[front] = 1;
                     os[side] = 1;
 

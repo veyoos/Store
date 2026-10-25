@@ -500,7 +500,11 @@
         storeData.products.forEach(p => {
             let imgSrc = '';
             if (p.front_image) {
-                imgSrc = base + p.front_image;
+                let clean = p.front_image.replace(/^\/+/, '');
+                if (clean.includes('uploads/')) {
+                    clean = clean.substring(clean.indexOf('uploads/'));
+                }
+                imgSrc = base + clean;
             } else {
                 imgSrc = base + '_next/image?url=%2Fproducts%2F' + encodeURIComponent(p.slug) + '-front.webp&w=384&q=75';
             }
