@@ -9,6 +9,25 @@
             window.STORE_BASE_PATH = _p ? (_p + '/') : '/';
             window.TURBOPACK_CHUNK_BASE_PATH = window.STORE_BASE_PATH + '_next/';
         }
+        if (!window.__DB_PRODUCTS__) {
+            try {
+                var _x = new XMLHttpRequest();
+                _x.open('GET', window.STORE_BASE_PATH + 'api/products.php', false);
+                _x.send(null);
+                if (_x.status === 200) {
+                    var _r = JSON.parse(_x.responseText);
+                    if (_r && _r.products && Array.isArray(_r.products) && _r.products.length > 0) {
+                        window.__DB_PRODUCTS__ = _r.products;
+                        if (_r.settings && _r.settings.store_title) {
+                            document.title = _r.settings.store_title;
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+        if (window.__DB_PRODUCTS__ && (window.__DB_PRODUCTS__.length !== 7 || window.__DB_PRODUCTS__.some(function(p){ return p.front_image || p.side_image; }))) {
+            document.documentElement.id = "__next_error__";
+        }
     </script>
     <!-- This site is hosted on Netlify. Anyone can build and deploy a site
      like this one for free: https://netlify.new/?utm_campaign=loops&utm_source=ai-legible&utm_medium=owned&utm_content=comment&utm_id=675bb962-a914-4794-8b61-dd495eb2f297

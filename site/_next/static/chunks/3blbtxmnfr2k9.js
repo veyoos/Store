@@ -6750,9 +6750,44 @@
                     garmentX0: 377,
                     garmentX1: 719
                 }
-            },
-            os = {},
-            oo = t => or[t].garmentBottomY - or[t].garmentTopY;
+            };
+        let defaultGeom = {
+            width: 1086,
+            height: 1448,
+            hookApexX: 538,
+            hookApexY: 17,
+            loopTopY: 17,
+            loopCenterX: 535,
+            loopInnerTopY: 24,
+            loopInnerBottomY: 51,
+            neckY: 115,
+            garmentTopY: 17,
+            garmentBottomY: 1317,
+            shoulderY: 535,
+            shoulderX0: 187,
+            shoulderX1: 890,
+            garmentX0: 107,
+            garmentX1: 969
+        };
+        try {
+            or = new Proxy(or, {
+                get(target, prop) {
+                    if (prop in target) return target[prop];
+                    if (typeof prop === "string" && prop.length > 0) return defaultGeom;
+                    return target[prop];
+                }
+            });
+        } catch (e) {}
+        let os = {};
+        try {
+            os = new Proxy(os, {
+                get(target, prop) {
+                    if (prop in target) return target[prop];
+                    return 1;
+                }
+            });
+        } catch (e) {}
+        let oo = t => (or[t] ? (or[t].garmentBottomY - or[t].garmentTopY) : 1300);
 
         function oa(t) {
             let e = `/products/${t}-back.webp`,
@@ -6811,8 +6846,9 @@
             }
         }
         let od = {},
-            oc = t => (t.loopInnerTopY + t.loopInnerBottomY) / 2,
-            op = [ou("crimson-memory", "Crimson Memory LS Shirt", "White", `${ol}crimson-memory-shirt`), oh("its-us-tee", "It's Us Never Them Tee", `${ol}its-us-never-them-tee-pink`, [
+            oc = t => ((or[t] ? (or[t].loopInnerTopY + or[t].loopInnerBottomY) : 50) / 2);
+
+        let defaultOp = [ou("crimson-memory", "Crimson Memory LS Shirt", "White", `${ol}crimson-memory-shirt`), oh("its-us-tee", "It's Us Never Them Tee", `${ol}its-us-never-them-tee-pink`, [
                 ["Black", "#1e1e1e", "its-us-tee-black"],
                 ["Pink", "#f6b1b4", "its-us-tee-bubblegum"],
                 ["Yellow", "#f8dd2f", "its-us-tee-yellow"]
@@ -6822,7 +6858,58 @@
             ]), ou("varsity", "Snug Wrld Logo Varsity Jacket", "Black", `${ol}snug-wrld-varsity-jackets`), ou("distressed-logo-t", "Distressed Logo Print T-Shirt", "Blue", `${ol}distressed-logo-print-t-shirt`), oh("jersey", "Snug Football Jersey", `${ol}snug-jersey-blue`, [
                 ["Yellow", "#e3ca1e", "jersey-yellow"],
                 ["Blue", "#0842a9", "jersey-blue"]
-            ]), ou("silicone-tee", "Silicone Logo Print T-Shirt", "White", `${ol}silicone-logo-tee`)],
+            ]), ou("silicone-tee", "Silicone Logo Print T-Shirt", "White", `${ol}silicone-logo-tee`)];
+
+        function getDynamicOp() {
+            try {
+                let dbList = (typeof window !== "undefined") ? (window.__DB_PRODUCTS__ || (window.__INITIAL_DATA__ && window.__INITIAL_DATA__.products)) : null;
+                if (!dbList || !Array.isArray(dbList) || dbList.length === 0) {
+                    return defaultOp;
+                }
+                let base = (typeof window !== "undefined" && window.STORE_BASE_PATH) ? window.STORE_BASE_PATH : "/";
+                if (!base.endsWith("/")) base += "/";
+
+                return dbList.map((p, idx) => {
+                    let s = p.slug || ('p-' + (p.id || idx));
+                    let name = p.title_fa || p.title || 'محصول';
+                    let colour = p.color || '';
+                    let url = p.buy_url || '';
+
+                    if (!p.front_image && !p.side_image) {
+                        let matched = defaultOp.find(orig => orig.slug === s);
+                        if (matched) {
+                            return { ...matched, name, colour, url };
+                        }
+                    }
+
+                    let front = p.front_image ? (p.front_image.startsWith('/') ? p.front_image : (base + p.front_image)) : `/products/${s}-front.webp`;
+                    let side = p.side_image ? (p.side_image.startsWith('/') ? p.side_image : (base + p.side_image)) : (p.front_image ? front : `/products/${s}-side.webp`);
+
+                    or[front] = defaultGeom;
+                    or[side] = defaultGeom;
+                    os[front] = 1;
+                    os[side] = 1;
+
+                    return {
+                        slug: s,
+                        name: name,
+                        colour: colour,
+                        side: side,
+                        front: front,
+                        back: undefined,
+                        url: url
+                    };
+                });
+            } catch (e) {
+                return defaultOp;
+            }
+        }
+
+        let op = getDynamicOp();
+        if (typeof window !== "undefined") {
+            window.__RACK_OP__ = op;
+        }
+        let 
             om = t => `(var(--iw) * ${os[t]??1})`,
             of = (t, e, i) => `${om(t)} * ${i/e.width}`;
 
