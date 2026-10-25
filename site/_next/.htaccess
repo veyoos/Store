@@ -1,0 +1,4 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^image/?$ image.php [L,QSA]
+</IfModule>
