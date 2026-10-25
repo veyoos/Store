@@ -55,9 +55,12 @@
         if (!nameText || !storeData.products) return null;
         const cleanName = nameText.trim().toLowerCase();
         return storeData.products.find(p => {
-            return (p.title && cleanName.includes(p.title.toLowerCase())) ||
-                   (p.title_fa && cleanName.includes(p.title_fa.toLowerCase())) ||
-                   (p.slug && cleanName.includes(p.slug.toLowerCase()));
+            const tEn = (p.title || '').trim().toLowerCase();
+            const tFa = (p.title_fa || '').trim().toLowerCase();
+            const s = (p.slug || '').trim().toLowerCase();
+            return (tEn && (cleanName.includes(tEn) || tEn.includes(cleanName))) ||
+                   (tFa && (cleanName.includes(tFa) || tFa.includes(cleanName))) ||
+                   (s && (cleanName.includes(s) || s.includes(cleanName)));
         });
     }
 

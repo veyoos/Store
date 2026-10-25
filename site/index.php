@@ -3,7 +3,10 @@
  * Dynamic Entry Point for Store
  * این فایل مسیر جاری را به صورت هوشمند تشخیص می‌دهد و چه سایت روی ریشه دامنه (/)
  * و چه در ساب‌دایرکتوری (مانند /store/site/) باشد، تمام آدرس‌های CSS، JS و تصاویر را به صورت خودکار اصلاح می‌کند.
+ * همچنین محصولات پایگاه داده MySQL را مستقیماً به صفحه تزریق می‌کند تا رگال متحرک بلادرنگ با محصولات دیتابیس هماهنگ شود.
  */
+
+require_once __DIR__ . '/config.php';
 
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 $path = parse_url($requestUri, PHP_URL_PATH) ?: '/';
@@ -30,6 +33,37 @@ $html = file_get_contents($htmlFile);
 
 $baseClean = rtrim($base, '/') . '/';
 
+// دریافت محصولات از پایگاه داده
+$db = get_db();
+$productsJson = 'null';
+$settingsJson = 'null';
+
+if ($db) {
+    try {
+        $stmt = $db->query("SELECT * FROM products ORDER BY sort_order ASC, id ASC");
+        $dbProducts = $stmt->fetchAll();
+        if (!empty($dbProducts)) {
+            $formatted = array_map(function($p) {
+                $p['price'] = (int)$p['price'];
+                $p['is_available'] = (int)$p['is_available'];
+                $p['stock_quantity'] = (int)$p['stock_quantity'];
+                $p['formatted_price'] = number_format($p['price']) . ' ' . $p['currency'];
+                return $p;
+            }, $dbProducts);
+            $productsJson = json_encode($formatted, JSON_UNESCAPED_UNICODE);
+        }
+
+        $stmtSet = $db->query("SELECT setting_key, setting_value FROM settings");
+        $settings = [];
+        while ($row = $stmtSet->fetch()) {
+            $settings[$row['setting_key']] = $row['setting_value'];
+        }
+        if (!empty($settings)) {
+            $settingsJson = json_encode($settings, JSON_UNESCAPED_UNICODE);
+        }
+    } catch (Exception $e) {}
+}
+
 // اگر سایت در ساب‌دایرکتوری نصب شده است (مثلاً /store/site/)
 if ($baseClean !== '/') {
     // اصلاح تمام ارجاعات /_next/ (شامل تمام عکس‌ها در srcset، فونت‌ها و اسکریپت‌ها)
@@ -38,14 +72,22 @@ if ($baseClean !== '/') {
     $html = str_replace('src="store-dynamic.js"', 'src="' . $baseClean . 'store-dynamic.js"', $html);
     $html = str_replace('src="/store-dynamic.js"', 'src="' . $baseClean . 'store-dynamic.js"', $html);
     $html = str_replace('href="/store-dynamic.js"', 'href="' . $baseClean . 'store-dynamic.js"', $html);
-
-    // تعریف متغیر مسیر پایه برای Turbopack و React
-    $baseScript = '<script>window.STORE_BASE_PATH="' . $baseClean . '";window.TURBOPACK_CHUNK_BASE_PATH="' . $baseClean . '_next/";</script>';
-    $html = preg_replace('/<head>/i', '<head>' . $baseScript, $html, 1);
-} else {
-    $baseScript = '<script>window.STORE_BASE_PATH="/";window.TURBOPACK_CHUNK_BASE_PATH="/_next/";</script>';
-    $html = preg_replace('/<head>/i', '<head>' . $baseScript, $html, 1);
 }
+
+// تزریق داده‌های پایگاه داده به متغیرهای گلوبال جاوااسکریپت قبل از اجرای باندل Next.js
+$injectedScript = '<script>';
+$injectedScript .= 'window.STORE_BASE_PATH="' . $baseClean . '";';
+$injectedScript .= 'window.TURBOPACK_CHUNK_BASE_PATH="' . $baseClean . '_next/";';
+if ($productsJson !== 'null') {
+    $injectedScript .= 'window.__DB_PRODUCTS__=' . $productsJson . ';';
+}
+if ($settingsJson !== 'null') {
+    $injectedScript .= 'window.__DB_SETTINGS__=' . $settingsJson . ';';
+}
+$injectedScript .= '</script>';
+$injectedScript .= '<script>if(window.__DB_PRODUCTS__ && (window.__DB_PRODUCTS__.length !== 7 || window.__DB_PRODUCTS__.some(function(p){ return p.front_image || p.side_image; }))){ document.documentElement.id = "__next_error__"; }</script>';
+
+$html = preg_replace('/<head>/i', '<head>' . $injectedScript, $html, 1);
 
 // تنظیم هدر خروجی
 header('Content-Type: text/html; charset=utf-8');

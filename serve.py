@@ -690,9 +690,20 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
 
-        if parsed.path == "/index.php":
-            self.path = "/index.html"
-            super().do_GET()
+        if parsed.path in ("/", "/index.html", "/index.php"):
+            prods = load_products()
+            settings = load_settings()
+            html_path = os.path.join(ROOT, "index.html")
+            with open(html_path, "r", encoding="utf-8") as f:
+                html = f.read()
+            injected_script = f'<script>window.STORE_BASE_PATH="/";window.__DB_PRODUCTS__ = {json.dumps(prods, ensure_ascii=False)};window.__DB_SETTINGS__ = {json.dumps(settings, ensure_ascii=False)};if(window.__DB_PRODUCTS__ && (window.__DB_PRODUCTS__.length !== 7 || window.__DB_PRODUCTS__.some(function(p){{ return p.front_image || p.side_image; }}))){{ document.documentElement.id = "__next_error__"; }}</script>'
+            html = html.replace("<head>", f"<head>{injected_script}", 1)
+            payload = html.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
             return
 
         # 1. Admin UI
@@ -740,7 +751,28 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path == "/_next/image":
             qs = parse_qs(parsed.query)
             width = int(qs.get("w", ["0"])[0] or 0)
-            fname = resolve_image(qs.get("url", [""])[0], width)
+            url_param = qs.get("url", [""])[0]
+
+            clean_url = url_param.lstrip("/")
+            if clean_url.startswith("uploads/"):
+                up_path = os.path.join(ROOT, clean_url)
+                if os.path.exists(up_path) and os.path.isfile(up_path):
+                    with open(up_path, "rb") as f:
+                        data = f.read()
+                    ext = os.path.splitext(up_path)[1].lower()
+                    ct = "image/jpeg"
+                    if ext == ".png": ct = "image/png"
+                    elif ext == ".webp": ct = "image/webp"
+                    elif ext == ".gif": ct = "image/gif"
+                    self.send_response(200)
+                    self.send_header("Content-Type", ct)
+                    self.send_header("Content-Length", str(len(data)))
+                    self.send_header("Cache-Control", "public, max-age=3600")
+                    self.end_headers()
+                    self.wfile.write(data)
+                    return
+
+            fname = resolve_image(url_param, width)
             path = fname and os.path.join(ROOT, "_next", fname + ".html")
             if not path or not os.path.exists(path):
                 return self.send_error(404)
