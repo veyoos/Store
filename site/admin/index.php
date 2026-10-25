@@ -11,30 +11,141 @@ $db = get_db();
 $msg = '';
 $msgType = 'success';
 
+// ساخت خودکار ستون‌های جدید تصویر در صورت عدم وجود (Migration بدون نیاز به اجرای دستی SQL)
+if ($db) {
+    try {
+        $db->exec("ALTER TABLE products ADD COLUMN front_image VARCHAR(500) DEFAULT '' AFTER description");
+    } catch (Exception $e) {}
+    try {
+        $db->exec("ALTER TABLE products ADD COLUMN side_image VARCHAR(500) DEFAULT '' AFTER front_image");
+    } catch (Exception $e) {}
+}
+
+// تابع کمکی برای آپلود ایمن تصاویر محصولات
+function handle_image_upload($fileInputName, $slug) {
+    if (empty($_FILES[$fileInputName]['name']) || $_FILES[$fileInputName]['error'] !== UPLOAD_ERR_OK) {
+        return '';
+    }
+    $tmpName  = $_FILES[$fileInputName]['tmp_name'];
+    $origName = $_FILES[$fileInputName]['name'];
+    $ext      = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+    $allowed  = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    
+    if (!in_array($ext, $allowed)) {
+        return '';
+    }
+    
+    $uploadDir = __DIR__ . '/../uploads/';
+    if (!is_dir($uploadDir)) {
+        @mkdir($uploadDir, 0755, true);
+    }
+    
+    $safeSlug = preg_replace('/[^a-z0-9\-]/i', '', $slug) ?: 'product';
+    $fileName = $safeSlug . '-' . time() . '.' . $ext;
+    $targetPath = $uploadDir . $fileName;
+    
+    if (move_uploaded_file($tmpName, $targetPath)) {
+        return 'uploads/' . $fileName;
+    }
+    return '';
+}
+
 // پردازش فرم‌ها
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
+    // ۱. افزودن محصول جدید
+    if ($action === 'add_product' && $db) {
+        $title       = trim($_POST['title'] ?? '');
+        $titleFa     = trim($_POST['title_fa'] ?? '');
+        $slug        = trim($_POST['slug'] ?? '');
+        $price       = (int)($_POST['price'] ?? 0);
+        $currency    = trim($_POST['currency'] ?? 'تومان');
+        $color       = trim($_POST['color'] ?? '');
+        $isAvailable = isset($_POST['is_available']) ? 1 : 0;
+        $stock       = (int)($_POST['stock_quantity'] ?? 10);
+        $buyUrl      = trim($_POST['buy_url'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+
+        if (empty($title)) {
+            $msg = 'وارد کردن عنوان انگلیسی یا شناسه محصول الزامی است.';
+            $msgType = 'error';
+        } else {
+            if (empty($slug)) {
+                $slug = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '-', $title));
+                $slug = trim($slug, '-');
+                if (empty($slug)) {
+                    $slug = 'product-' . time();
+                }
+            }
+
+            // بررسی عدم تکراری بودن اسلاگ
+            $stmtCheck = $db->prepare("SELECT id FROM products WHERE slug = ?");
+            $stmtCheck->execute([$slug]);
+            if ($stmtCheck->fetch()) {
+                $slug .= '-' . rand(100, 999);
+            }
+
+            $frontImage = handle_image_upload('product_image', $slug);
+
+            try {
+                $stmt = $db->prepare("INSERT INTO products (slug, title, title_fa, price, currency, is_available, stock_quantity, color, buy_url, description, front_image, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 99)");
+                $stmt->execute([$slug, $title, $titleFa, $price, $currency, $isAvailable, $stock, $color, $buyUrl, $description, $frontImage]);
+                $msg = 'محصول جدید با موفقیت اضافه شد!';
+                $msgType = 'success';
+            } catch (Exception $e) {
+                $msg = 'خطا در ثبت محصول: ' . $e->getMessage();
+                $msgType = 'error';
+            }
+        }
+    }
+
+    // ۲. ویرایش محصول
     if ($action === 'edit_product' && $db) {
         $id          = (int)$_POST['id'];
+        $title       = trim($_POST['title'] ?? '');
         $titleFa     = trim($_POST['title_fa'] ?? '');
         $price       = (int)$_POST['price'];
         $currency    = trim($_POST['currency'] ?? 'تومان');
+        $color       = trim($_POST['color'] ?? '');
         $isAvailable = isset($_POST['is_available']) ? 1 : 0;
         $stock       = (int)$_POST['stock_quantity'];
         $buyUrl      = trim($_POST['buy_url'] ?? '');
         $description = trim($_POST['description'] ?? '');
 
+        $newImage = handle_image_upload('product_image', 'p-' . $id);
+
         try {
-            $stmt = $db->prepare("UPDATE products SET title_fa = ?, price = ?, currency = ?, is_available = ?, stock_quantity = ?, buy_url = ?, description = ? WHERE id = ?");
-            $stmt->execute([$titleFa, $price, $currency, $isAvailable, $stock, $buyUrl, $description, $id]);
+            if (!empty($newImage)) {
+                $stmt = $db->prepare("UPDATE products SET title = ?, title_fa = ?, price = ?, currency = ?, color = ?, is_available = ?, stock_quantity = ?, buy_url = ?, description = ?, front_image = ? WHERE id = ?");
+                $stmt->execute([$title, $titleFa, $price, $currency, $color, $isAvailable, $stock, $buyUrl, $description, $newImage, $id]);
+            } else {
+                $stmt = $db->prepare("UPDATE products SET title = ?, title_fa = ?, price = ?, currency = ?, color = ?, is_available = ?, stock_quantity = ?, buy_url = ?, description = ? WHERE id = ?");
+                $stmt->execute([$title, $titleFa, $price, $currency, $color, $isAvailable, $stock, $buyUrl, $description, $id]);
+            }
             $msg = 'محصول با موفقیت به‌روزرسانی شد.';
+            $msgType = 'success';
         } catch (Exception $e) {
             $msg = 'خطا در ویرایش محصول: ' . $e->getMessage();
             $msgType = 'error';
         }
     }
 
+    // ۳. حذف محصول
+    if ($action === 'delete_product' && $db) {
+        $id = (int)$_POST['id'];
+        try {
+            $stmt = $db->prepare("DELETE FROM products WHERE id = ?");
+            $stmt->execute([$id]);
+            $msg = 'محصول با موفقیت حذف شد.';
+            $msgType = 'success';
+        } catch (Exception $e) {
+            $msg = 'خطا در حذف محصول: ' . $e->getMessage();
+            $msgType = 'error';
+        }
+    }
+
+    // ۴. به‌روزرسانی تنظیمات
     if ($action === 'update_settings' && $db) {
         $settingsToUpdate = [
             'store_title'   => $_POST['store_title'] ?? '',
@@ -55,6 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // ۵. تغییر وضعیت سفارش
     if ($action === 'update_order_status' && $db) {
         $orderId = (int)$_POST['order_id'];
         $status  = trim($_POST['status']);
@@ -68,6 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // ۶. حذف سفارش
     if ($action === 'delete_order' && $db) {
         $orderId = (int)$_POST['order_id'];
         try {
@@ -80,6 +193,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // ۷. تغییر رمز عبور
     if ($action === 'change_password' && $db) {
         $newPass = trim($_POST['new_password'] ?? '');
         if (strlen($newPass) >= 6) {
@@ -121,17 +235,6 @@ if ($db) {
     } catch (Exception $e) {
         $dbError = $e->getMessage();
     }
-} else {
-    // محصولات نمایشی هنگام عدم اتصال دیتابیس
-    $products = [
-        ['id' => 1, 'slug' => 'crimson-memory', 'title' => 'Crimson Memory LS Shirt', 'title_fa' => 'پیراهن آستین بلند کریمسون', 'price' => 1250000, 'currency' => 'تومان', 'is_available' => 1, 'stock_quantity' => 8, 'color' => 'White', 'buy_url' => '', 'description' => 'پیراهن آستین بلند نخی'],
-        ['id' => 2, 'slug' => 'its-us-tee', 'title' => "It's Us Never Them Tee", 'title_fa' => 'تی‌شرت مشکی/صورتی/زرد It\'s Us', 'price' => 890000, 'currency' => 'تومان', 'is_available' => 1, 'stock_quantity' => 15, 'color' => 'Black / Pink / Yellow', 'buy_url' => '', 'description' => 'تی‌شرت پنبه‌ای'],
-        ['id' => 3, 'slug' => 'tank', 'title' => 'Distressed Painted Logo Tank Top', 'title_fa' => 'تاپ بدون آستین وینتیج', 'price' => 750000, 'currency' => 'تومان', 'is_available' => 1, 'stock_quantity' => 10, 'color' => 'Black / Sand', 'buy_url' => '', 'description' => 'تاپ وینتیج'],
-        ['id' => 4, 'slug' => 'varsity', 'title' => 'Snug Wrld Logo Varsity Jacket', 'title_fa' => 'ژاکت ورسیتی مشکی لوگودار', 'price' => 2450000, 'currency' => 'تومان', 'is_available' => 1, 'stock_quantity' => 4, 'color' => 'Black', 'buy_url' => '', 'description' => 'کاپشن ورسیتی'],
-        ['id' => 5, 'slug' => 'distressed-logo-t', 'title' => 'Distressed Logo Print T-Shirt', 'title_fa' => 'تی‌شرت چاپی دیسترسد آبی', 'price' => 920000, 'currency' => 'تومان', 'is_available' => 1, 'stock_quantity' => 12, 'color' => 'Blue', 'buy_url' => '', 'description' => 'تی‌شرت آبی'],
-        ['id' => 6, 'slug' => 'jersey', 'title' => 'Snug Football Jersey', 'title_fa' => 'لباس ورزشی زرد/آبی فوتبالی', 'price' => 1100000, 'currency' => 'تومان', 'is_available' => 1, 'stock_quantity' => 7, 'color' => 'Yellow / Blue', 'buy_url' => '', 'description' => 'پیراهن ورزشی'],
-        ['id' => 7, 'slug' => 'silicone-tee', 'title' => 'Silicone Logo Print T-Shirt', 'title_fa' => 'تی‌شرت سیلیکونی سفید', 'price' => 880000, 'currency' => 'تومان', 'is_available' => 1, 'stock_quantity' => 9, 'color' => 'White', 'buy_url' => '', 'description' => 'تی‌شرت سیلیکونی']
-    ];
 }
 
 $tab = $_GET['tab'] ?? 'products';
@@ -167,7 +270,8 @@ $tab = $_GET['tab'] ?? 'products';
         .tab-btn.active { color: #3b82f6; border-bottom-color: #3b82f6; }
 
         .card { background: #161922; border: 1px solid #232734; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
-        .card-title { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 16px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+        .card-title { font-size: 17px; font-weight: 700; color: #fff; }
 
         table { width: 100%; border-collapse: collapse; text-align: right; }
         th { background: #1c202c; color: #94a3b8; font-size: 13px; font-weight: 600; padding: 12px 16px; border-bottom: 1px solid #282d3c; }
@@ -182,23 +286,26 @@ $tab = $_GET['tab'] ?? 'products';
         .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
         .btn-blue { background: #2563eb; color: #fff; }
         .btn-blue:hover { background: #1d4ed8; }
+        .btn-green { background: #059669; color: #fff; }
+        .btn-green:hover { background: #047857; }
         .btn-red { background: #dc2626; color: #fff; }
-        .btn-sm { padding: 4px 10px; font-size: 12px; }
+        .btn-red:hover { background: #b91c1c; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
 
-        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 16px; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 16px; }
         .form-group { margin-bottom: 16px; }
         label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: #94a3b8; }
-        input[type="text"], input[type="number"], input[type="password"], textarea, select {
+        input[type="text"], input[type="number"], input[type="password"], input[type="file"], textarea, select {
             width: 100%; padding: 10px 14px; background: #0c0e12; border: 1px solid #282d3c; border-radius: 8px; color: #fff; font-size: 14px;
         }
         input:focus, textarea:focus, select:focus { outline: none; border-color: #3b82f6; }
         textarea { resize: vertical; min-height: 80px; }
 
         /* Modal */
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 999; align-items: center; justify-content: center; padding: 20px; }
-        .modal { background: #161922; border: 1px solid #282d3c; border-radius: 14px; padding: 28px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 999; align-items: center; justify-content: center; padding: 20px; }
+        .modal { background: #161922; border: 1px solid #282d3c; border-radius: 14px; padding: 28px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .modal-close { background: none; border: none; color: #94a3b8; font-size: 22px; cursor: pointer; }
+        .modal-close { background: none; border: none; color: #94a3b8; font-size: 24px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -217,13 +324,12 @@ $tab = $_GET['tab'] ?? 'products';
 <div class="container">
     <?php if ($db): ?>
         <div class="db-status db-ok">
-            <span>✅ <strong>دیتابیس متصل است:</strong> اتصال به MySQL با موفقیت برقرار است و تغییرات در لحظه اعمال می‌شوند.</span>
+            <span>✅ <strong>دیتابیس متصل است:</strong> اتصال به MySQL برقرار است و تغییرات در لحظه اعمال می‌شوند.</span>
         </div>
     <?php else: ?>
         <div class="db-status db-warn">
             <div>
-                ⚠️ <strong>دیتابیس هنوز متصل نشده است!</strong><br>
-                برای ذخیره دائمی تغییرات، فایل <code>config.php</code> را باز کرده و مشخصات دیتابیس cPanel خود را وارد کنید، سپس فایل <code>database.sql</code> را در phpMyAdmin ایمپورت نمایید.
+                ⚠️ <strong>دیتابیس متصل نیست!</strong> مشخصات دیتابیس در <code>config.php</code> را بررسی کنید.
             </div>
         </div>
     <?php endif; ?>
@@ -242,38 +348,49 @@ $tab = $_GET['tab'] ?? 'products';
 
     <?php if ($tab === 'products'): ?>
         <div class="card">
-            <div class="card-title">لیست لباس‌های روی رگال</div>
+            <div class="card-header">
+                <div class="card-title">لیست تمامی لباس‌های فروشگاه</div>
+                <button class="btn btn-green" onclick="openAddModal()">➕ افزودن محصول جدید</button>
+            </div>
             <div style="overflow-x: auto;">
                 <table>
                     <thead>
                         <tr>
-                            <th>تصویر / شناسه</th>
+                            <th>تصویر</th>
                             <th>نام محصول (انگلیسی و فارسی)</th>
                             <th>قیمت</th>
                             <th>رنگ</th>
-                            <th>وضعیت موجودی</th>
-                            <th>تعداد موجود</th>
+                            <th>وضعیت</th>
+                            <th>موجودی</th>
                             <th>عملیات</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($products as $p): ?>
+                            <?php
+                            $thumbSrc = '';
+                            if (!empty($p['front_image'])) {
+                                $thumbSrc = '../' . htmlspecialchars($p['front_image']);
+                            } else {
+                                $thumbSrc = '../_next/image?url=%2Fproducts%2F' . urlencode($p['slug']) . '-front.webp&w=96&q=75';
+                            }
+                            ?>
                             <tr>
                                 <td>
-                                    <img src="/_next/image?url=%2Fproducts%2F<?= urlencode($p['slug']) ?>-front.webp&w=96&q=75" 
-                                         onerror="this.src='/_next/image?url=%2Fproducts%2F<?= urlencode($p['slug']) ?>-side.webp&w=96&q=75'"
-                                         style="width: 48px; height: 48px; object-fit: contain; background: #000; border-radius: 6px; padding: 2px;">
+                                    <img src="<?= $thumbSrc ?>" 
+                                         onerror="this.src='../_next/image?url=%2Fproducts%2F<?= urlencode($p['slug']) ?>-side.webp&w=96&q=75'"
+                                         style="width: 52px; height: 52px; object-fit: contain; background: #000; border-radius: 8px; padding: 2px;">
                                     <div style="font-size: 11px; color: #64748b; font-family: monospace;"><?= htmlspecialchars($p['slug']) ?></div>
                                 </td>
                                 <td>
-                                    <strong style="color: #fff;"><?= htmlspecialchars($p['title']) ?></strong>
-                                    <div style="color: #94a3b8; font-size: 13px;"><?= htmlspecialchars($p['title_fa'] ?: 'بدون عنوان فارسی') ?></div>
+                                    <strong style="color: #fff; font-size: 15px;"><?= htmlspecialchars($p['title']) ?></strong>
+                                    <div style="color: #94a3b8; font-size: 13px;"><?= htmlspecialchars($p['title_fa'] ?: '—') ?></div>
                                 </td>
                                 <td>
                                     <strong style="color: #60a5fa;"><?= number_format($p['price']) ?></strong>
                                     <span style="font-size: 12px; color: #94a3b8;"><?= htmlspecialchars($p['currency']) ?></span>
                                 </td>
-                                <td><?= htmlspecialchars($p['color']) ?></td>
+                                <td><?= htmlspecialchars($p['color'] ?: '—') ?></td>
                                 <td>
                                     <?php if ($p['is_available']): ?>
                                         <span class="badge badge-green">موجود</span>
@@ -283,9 +400,16 @@ $tab = $_GET['tab'] ?? 'products';
                                 </td>
                                 <td><?= (int)$p['stock_quantity'] ?> عدد</td>
                                 <td>
-                                    <button class="btn btn-blue btn-sm" onclick='openEditModal(<?= json_encode($p, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>)'>
-                                        ✏️ ویرایش قیمت و مشخصات
-                                    </button>
+                                    <div style="display: flex; gap: 6px;">
+                                        <button class="btn btn-blue btn-sm" onclick='openEditModal(<?= json_encode($p, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>)'>
+                                            ✏️ ویرایش
+                                        </button>
+                                        <form method="POST" style="display: inline;" onsubmit="return confirm('آیا از حذف محصول «<?= htmlspecialchars($p['title']) ?>» مطمئن هستید؟');">
+                                            <input type="hidden" name="action" value="delete_product">
+                                            <input type="hidden" name="id" value="<?= $p['id'] ?>">
+                                            <button type="submit" class="btn btn-red btn-sm" title="حذف">🗑️</button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -416,6 +540,91 @@ $tab = $_GET['tab'] ?? 'products';
     <?php endif; ?>
 </div>
 
+<!-- Modal افزودن محصول جدید -->
+<div class="modal-overlay" id="addModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="card-title">➕ افزودن محصول جدید به فروشگاه</div>
+            <button class="modal-close" onclick="closeAddModal()">&times;</button>
+        </div>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="action" value="add_product">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>نام محصول (انگلیسی یا لاتین) *</label>
+                    <input type="text" name="title" required placeholder="مثال: Oversized Graphic Tee">
+                </div>
+                <div class="form-group">
+                    <label>نام فارسی محصول</label>
+                    <input type="text" name="title_fa" placeholder="مثال: تی‌شرت اورسایز طرح گرافیکی">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>شناسه یکتا (Slug - اختیاری)</label>
+                    <input type="text" name="slug" placeholder="مثال: oversized-graphic-tee" style="direction: ltr;">
+                    <small style="color: #64748b; font-size: 11px;">اگر خالی بگذارید به طور خودکار ساخته می‌شود.</small>
+                </div>
+                <div class="form-group">
+                    <label>رنگ لباس</label>
+                    <input type="text" name="color" placeholder="مثال: مشکی / Black">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>قیمت *</label>
+                    <input type="number" name="price" required placeholder="مثال: 850000">
+                </div>
+                <div class="form-group">
+                    <label>واحد پول</label>
+                    <select name="currency">
+                        <option value="تومان" selected>تومان</option>
+                        <option value="ریال">ریال</option>
+                        <option value="هزار تومان">هزار تومان</option>
+                        <option value="$">$ (دلار)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>تعداد موجودی در انبار</label>
+                    <input type="number" name="stock_quantity" value="10">
+                </div>
+                <div class="form-group" style="display: flex; align-items: center; gap: 10px; padding-top: 26px;">
+                    <input type="checkbox" name="is_available" id="addIsAvailable" value="1" checked style="width: 20px; height: 20px;">
+                    <label for="addIsAvailable" style="margin: 0; cursor: pointer; color: #fff;">محصول موجود است</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>تصویر محصول (آپلود عکس JPG, PNG, WebP)</label>
+                <input type="file" name="product_image" accept="image/*">
+                <small style="color: #64748b; font-size: 12px;">پیشنهاد: تصویر لباس با پس‌زمینه شفاف یا ساده جهت نمایش تمیز.</small>
+            </div>
+
+            <div class="form-group">
+                <label>لینک مستقیم خرید / درگاه (اختیاری)</label>
+                <input type="text" name="buy_url" placeholder="https://..." style="direction: ltr;">
+                <small style="color: #64748b; font-size: 12px;">در صورت خالی بودن، فرم ثبت سفارش آنلاین در سایت برای خریدار باز می‌شود.</small>
+            </div>
+
+            <div class="form-group">
+                <label>توضیحات و مشخصات</label>
+                <textarea name="description" placeholder="جنس پارچه، جدول سایز و توضیحات محصول..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" class="btn" style="background: #282d3c; color: #cbd5e1;" onclick="closeAddModal()">انصراف</button>
+                <button type="submit" class="btn btn-green">➕ افزودن و ذخیره محصول</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Modal ویرایش محصول -->
 <div class="modal-overlay" id="editModal">
     <div class="modal">
@@ -423,13 +632,19 @@ $tab = $_GET['tab'] ?? 'products';
             <div class="card-title" id="modalProductTitle" style="margin: 0;">ویرایش محصول</div>
             <button class="modal-close" onclick="closeEditModal()">&times;</button>
         </div>
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="edit_product">
             <input type="hidden" name="id" id="editId">
 
-            <div class="form-group">
-                <label>نام فارسی محصول</label>
-                <input type="text" name="title_fa" id="editTitleFa" placeholder="مثال: پیراهن آستین بلند طرح اسپرت">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>نام محصول (انگلیسی یا اصلی)</label>
+                    <input type="text" name="title" id="editTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>نام فارسی محصول</label>
+                    <input type="text" name="title_fa" id="editTitleFa" placeholder="مثال: پیراهن آستین بلند">
+                </div>
             </div>
 
             <div class="form-row">
@@ -450,24 +665,33 @@ $tab = $_GET['tab'] ?? 'products';
 
             <div class="form-row">
                 <div class="form-group">
+                    <label>رنگ لباس</label>
+                    <input type="text" name="color" id="editColor">
+                </div>
+                <div class="form-group">
                     <label>تعداد موجودی در انبار</label>
                     <input type="number" name="stock_quantity" id="editStock" value="10">
                 </div>
-                <div class="form-group" style="display: flex; align-items: center; gap: 10px; padding-top: 26px;">
-                    <input type="checkbox" name="is_available" id="editIsAvailable" value="1" style="width: 20px; height: 20px;">
-                    <label for="editIsAvailable" style="margin: 0; cursor: pointer; color: #fff;">محصول موجود است</label>
-                </div>
+            </div>
+
+            <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" name="is_available" id="editIsAvailable" value="1" style="width: 20px; height: 20px;">
+                <label for="editIsAvailable" style="margin: 0; cursor: pointer; color: #fff;">محصول موجود است</label>
+            </div>
+
+            <div class="form-group">
+                <label>تغییر یا جایگزینی تصویر (اختیاری)</label>
+                <input type="file" name="product_image" accept="image/*">
             </div>
 
             <div class="form-group">
                 <label>لینک خرید مستقیم (اختیاری)</label>
-                <input type="text" name="buy_url" id="editBuyUrl" placeholder="https://zarinp.al/... یا صفحه پرداخت" style="direction: ltr;">
-                <small style="color: #64748b; font-size: 12px;">اگر این فیلد خالی بماند، فرم ثبت سفارش آنلاین در سایت باز می‌شود.</small>
+                <input type="text" name="buy_url" id="editBuyUrl" placeholder="https://..." style="direction: ltr;">
             </div>
 
             <div class="form-group">
                 <label>توضیحات محصول</label>
-                <textarea name="description" id="editDescription" placeholder="جنس پارچه، سایزبندی و جزئیات..."></textarea>
+                <textarea name="description" id="editDescription"></textarea>
             </div>
 
             <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
@@ -479,12 +703,22 @@ $tab = $_GET['tab'] ?? 'products';
 </div>
 
 <script>
+function openAddModal() {
+    document.getElementById('addModal').style.display = 'flex';
+}
+
+function closeAddModal() {
+    document.getElementById('addModal').style.display = 'none';
+}
+
 function openEditModal(product) {
     document.getElementById('editId').value = product.id;
-    document.getElementById('modalProductTitle').innerText = 'ویرایش: ' + product.title;
+    document.getElementById('modalProductTitle').innerText = 'ویرایش: ' + (product.title_fa || product.title);
+    document.getElementById('editTitle').value = product.title || '';
     document.getElementById('editTitleFa').value = product.title_fa || '';
     document.getElementById('editPrice').value = product.price || 0;
     document.getElementById('editCurrency').value = product.currency || 'تومان';
+    document.getElementById('editColor').value = product.color || '';
     document.getElementById('editStock').value = product.stock_quantity || 0;
     document.getElementById('editIsAvailable').checked = parseInt(product.is_available) === 1;
     document.getElementById('editBuyUrl').value = product.buy_url || '';
@@ -498,10 +732,8 @@ function closeEditModal() {
 }
 
 window.onclick = function(e) {
-    var modal = document.getElementById('editModal');
-    if (e.target === modal) {
-        closeEditModal();
-    }
+    if (e.target === document.getElementById('editModal')) closeEditModal();
+    if (e.target === document.getElementById('addModal')) closeAddModal();
 }
 </script>
 

@@ -36,6 +36,7 @@ $defaultProducts = [
         'stock_quantity' => 8,
         'color' => 'White',
         'buy_url' => '',
+        'front_image' => '',
         'description' => 'پیراهن آستین بلند نخی با کیفیت عالی و دوخت سفارشی'
     ],
     [
@@ -49,6 +50,7 @@ $defaultProducts = [
         'stock_quantity' => 15,
         'color' => 'Black / Pink / Yellow',
         'buy_url' => '',
+        'front_image' => '',
         'description' => 'تی‌شرت اورسایز صددرصد پنبه با چاپ سیلک برجسته'
     ],
     [
@@ -62,6 +64,7 @@ $defaultProducts = [
         'stock_quantity' => 10,
         'color' => 'Black / Sand',
         'buy_url' => '',
+        'front_image' => '',
         'description' => 'تاپ راحتی شسته شده به سبک وینتیج با لوگوی آرت ورک'
     ],
     [
@@ -75,6 +78,7 @@ $defaultProducts = [
         'stock_quantity' => 4,
         'color' => 'Black',
         'buy_url' => '',
+        'front_image' => '',
         'description' => 'کاپشن بیسبالی ورسیتی کژوال با آستر گرم و دوخت باکیفیت'
     ],
     [
@@ -88,6 +92,7 @@ $defaultProducts = [
         'stock_quantity' => 12,
         'color' => 'Blue',
         'buy_url' => '',
+        'front_image' => '',
         'description' => 'تی‌شرت آستین کوتاه طرح کلاسیک با پارچه نرم و تنفس‌پذیر'
     ],
     [
@@ -101,6 +106,7 @@ $defaultProducts = [
         'stock_quantity' => 7,
         'color' => 'Yellow / Blue',
         'buy_url' => '',
+        'front_image' => '',
         'description' => 'پیراهن ورزشی استریت‌استایل با تن‌خور آزاد و جنس تنفس‌پذیر'
     ],
     [
@@ -114,6 +120,7 @@ $defaultProducts = [
         'stock_quantity' => 9,
         'color' => 'White',
         'buy_url' => '',
+        'front_image' => '',
         'description' => 'تی‌شرت یقه گرد مینیمال با پچ سیلیکونی برجسته'
     ]
 ];
@@ -136,6 +143,11 @@ if ($db) {
                 $p['is_available'] = (int)$p['is_available'];
                 $p['stock_quantity'] = (int)$p['stock_quantity'];
                 $p['formatted_price'] = number_format($p['price']) . ' ' . $p['currency'];
+                if (!empty($p['front_image'])) {
+                    $p['image_url'] = $p['front_image'];
+                } else {
+                    $p['image_url'] = '_next/image?url=%2Fproducts%2F' . urlencode($p['slug']) . '-front.webp&w=640&q=75';
+                }
                 return $p;
             }, $dbProducts);
             $response['source'] = 'database';
@@ -149,6 +161,7 @@ if ($db) {
 } else {
     $response['products'] = array_map(function($p) {
         $p['formatted_price'] = number_format($p['price']) . ' ' . $p['currency'];
+        $p['image_url'] = '_next/image?url=%2Fproducts%2F' . urlencode($p['slug']) . '-front.webp&w=640&q=75';
         return $p;
     }, $defaultProducts);
 }

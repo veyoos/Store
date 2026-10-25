@@ -6,3 +6,6 @@ site/_next/static/chunks-original/
 .claude/
 .DS_Store
 __pycache__/
+site/*_data.json
+site/uploads/*
+!site/uploads/.gitkeep
