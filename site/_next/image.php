@@ -2,9 +2,57 @@
 /**
  * Image resolver inside _next directory for cPanel / Apache
  */
-$url = isset($_GET['url']) ? $_GET['url'] : '';
+$url = isset($_GET['url']) ? trim($_GET['url']) : '';
 $width = isset($_GET['w']) ? (int)$_GET['w'] : 0;
 
+if (empty($url)) {
+    http_response_code(400);
+    exit('URL is required');
+}
+
+// 1. بررسی و تحویل تصاویر آپلود شده در پوشه uploads
+if (strpos($url, '..') === false) {
+    $parentDir = dirname(__DIR__); // پوشه ریشه سایت
+    $cleanUrl = ltrim($url, '/');
+    
+    $candidatePaths = [
+        $parentDir . '/' . $cleanUrl,
+    ];
+
+    if (($pos = strpos($cleanUrl, 'uploads/')) !== false) {
+        $candidatePaths[] = $parentDir . '/' . substr($cleanUrl, $pos);
+    }
+
+    $filename = basename($cleanUrl);
+    if (!empty($filename)) {
+        $candidatePaths[] = $parentDir . '/uploads/' . $filename;
+        $candidatePaths[] = __DIR__ . '/../uploads/' . $filename;
+    }
+
+    foreach ($candidatePaths as $fpath) {
+        if (file_exists($fpath) && is_file($fpath)) {
+            $ext = strtolower(pathinfo($fpath, PATHINFO_EXTENSION));
+            $mime = 'image/jpeg';
+            if ($ext === 'png') $mime = 'image/png';
+            elseif ($ext === 'webp') $mime = 'image/webp';
+            elseif ($ext === 'gif') $mime = 'image/gif';
+            elseif (function_exists('mime_content_type')) {
+                $mime = mime_content_type($fpath) ?: 'image/jpeg';
+            }
+
+            header("Content-Type: " . $mime);
+            header("Content-Length: " . filesize($fpath));
+            header("Cache-Control: public, max-age=31536000");
+            header("Access-Control-Allow-Origin: *");
+            if ($_SERVER['REQUEST_METHOD'] !== 'HEAD') {
+                readfile($fpath);
+            }
+            exit;
+        }
+    }
+}
+
+// 2. نقشه تصاویر پیش‌فرض رگال
 $products = [
     "crimson-memory"        => ["image-c6343cb74a71e8", "image-6c2a15e13730c8", "image-4e8640f03d7b6"],
     "distressed-logo-t"     => ["image-bb6fb99c4b2508", "image-c1471486a0b8a8", "image-05f55d455bb558"],
@@ -20,7 +68,7 @@ $products = [
 ];
 
 function resolve_image($url, $width, $products) {
-    if ($url === "/snug-wrld-logo.png") {
+    if ($url === "/snug-wrld-logo.png" || basename($url) === "snug-wrld-logo.png") {
         return "image";
     }
     $basename = basename($url);
@@ -52,6 +100,7 @@ if ($fname) {
         header("Content-Type: image/webp");
         header("Content-Length: " . filesize($filePath));
         header("Cache-Control: public, max-age=31536000");
+        header("Access-Control-Allow-Origin: *");
         if ($_SERVER['REQUEST_METHOD'] !== 'HEAD') {
             readfile($filePath);
         }
@@ -59,12 +108,12 @@ if ($fname) {
     }
 }
 
-// Fallback checking parent directory
+// بررسی فایل image.php ریشه به عنوان fallback
 $parentImage = dirname(__DIR__) . '/image.php';
-if (file_exists($parentImage)) {
+if (file_exists($parentImage) && realpath($parentImage) !== realpath(__FILE__)) {
     require $parentImage;
     exit;
 }
 
 http_response_code(404);
-echo "Image not found";
+echo "Image not found: " . htmlspecialchars($url);

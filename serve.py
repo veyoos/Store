@@ -754,6 +754,8 @@ class Handler(SimpleHTTPRequestHandler):
             url_param = qs.get("url", [""])[0]
 
             clean_url = url_param.lstrip("/")
+            if "uploads/" in clean_url:
+                clean_url = clean_url[clean_url.find("uploads/"):]
             if clean_url.startswith("uploads/"):
                 up_path = os.path.join(ROOT, clean_url)
                 if os.path.exists(up_path) and os.path.isfile(up_path):

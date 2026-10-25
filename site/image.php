@@ -1,12 +1,63 @@
 <?php
 /**
  * Image resolver for Next.js static export on Apache / PHP
- * این اسکریپت درخواست‌های /_next/image را دریافت کرده و عکس‌های WebP متناظر را تحویل می‌دهد.
+ * این اسکریپت درخواست‌های /_next/image را دریافت کرده و عکس‌های WebP یا تصاویر آپلودی محصولات را تحویل می‌دهد.
  */
 
-$url = isset($_GET['url']) ? $_GET['url'] : '';
+// دریافت آدرس عکس درخواستی
+$url = isset($_GET['url']) ? trim($_GET['url']) : '';
 $width = isset($_GET['w']) ? (int)$_GET['w'] : 0;
 
+if (empty($url)) {
+    http_response_code(400);
+    exit('URL is required');
+}
+
+// 1. بررسی و تحویل تصاویر آپلود شده در پوشه uploads (با پشتیبانی کامل از ساب‌دایرکتوری مانند /store/)
+if (strpos($url, '..') === false) {
+    $rootDir = __DIR__;
+    $cleanUrl = ltrim($url, '/');
+    
+    $candidatePaths = [
+        $rootDir . '/' . $cleanUrl,
+    ];
+
+    // اگر مسیر حاوی uploads/ است، هر آنچه بعد از uploads هست را بردار
+    if (($pos = strpos($cleanUrl, 'uploads/')) !== false) {
+        $candidatePaths[] = $rootDir . '/' . substr($cleanUrl, $pos);
+    }
+
+    // بررسی مستقیم بر اساس نام فایل در پوشه uploads
+    $filename = basename($cleanUrl);
+    if (!empty($filename)) {
+        $candidatePaths[] = $rootDir . '/uploads/' . $filename;
+        $candidatePaths[] = dirname($rootDir) . '/uploads/' . $filename;
+    }
+
+    foreach ($candidatePaths as $fpath) {
+        if (file_exists($fpath) && is_file($fpath)) {
+            $ext = strtolower(pathinfo($fpath, PATHINFO_EXTENSION));
+            $mime = 'image/jpeg';
+            if ($ext === 'png') $mime = 'image/png';
+            elseif ($ext === 'webp') $mime = 'image/webp';
+            elseif ($ext === 'gif') $mime = 'image/gif';
+            elseif (function_exists('mime_content_type')) {
+                $mime = mime_content_type($fpath) ?: 'image/jpeg';
+            }
+
+            header("Content-Type: " . $mime);
+            header("Content-Length: " . filesize($fpath));
+            header("Cache-Control: public, max-age=31536000");
+            header("Access-Control-Allow-Origin: *");
+            if ($_SERVER['REQUEST_METHOD'] !== 'HEAD') {
+                readfile($fpath);
+            }
+            exit;
+        }
+    }
+}
+
+// 2. نقشه تصاویر پیش‌فرض رگال
 $products = [
     "crimson-memory"        => ["image-c6343cb74a71e8", "image-6c2a15e13730c8", "image-4e8640f03d7b6"],
     "distressed-logo-t"     => ["image-bb6fb99c4b2508", "image-c1471486a0b8a8", "image-05f55d455bb558"],
@@ -22,7 +73,7 @@ $products = [
 ];
 
 function resolve_image($url, $width, $products) {
-    if ($url === "/snug-wrld-logo.png") {
+    if ($url === "/snug-wrld-logo.png" || basename($url) === "snug-wrld-logo.png") {
         return "image";
     }
     $basename = basename($url);
@@ -54,6 +105,7 @@ if ($fname) {
         header("Content-Type: image/webp");
         header("Content-Length: " . filesize($filePath));
         header("Cache-Control: public, max-age=31536000");
+        header("Access-Control-Allow-Origin: *");
         if ($_SERVER['REQUEST_METHOD'] !== 'HEAD') {
             readfile($filePath);
         }
@@ -61,17 +113,5 @@ if ($fname) {
     }
 }
 
-// اگر تصویر در پوشه uploads یا مسیر دیگری باشد
-if (!empty($url) && strpos($url, '..') === false) {
-    $customPath = __DIR__ . '/' . ltrim($url, '/');
-    if (file_exists($customPath)) {
-        $mime = mime_content_type($customPath) ?: 'image/jpeg';
-        header("Content-Type: " . $mime);
-        header("Content-Length: " . filesize($customPath));
-        readfile($customPath);
-        exit;
-    }
-}
-
 http_response_code(404);
-echo "Image not found";
+echo "Image not found: " . htmlspecialchars($url);
