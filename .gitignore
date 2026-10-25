@@ -1,0 +1,8 @@
+# Leftovers from the page saver (browser-extension files), not part of the site
+_DataURI/
+*.amazonaws.com/
+*.cloudfront.net/
+site/_next/static/chunks-original/
+.claude/
+.DS_Store
+__pycache__/
