@@ -6875,17 +6875,18 @@
                     let colour = p.color || '';
                     let url = p.buy_url || '';
 
-                    if (!p.front_image && !p.side_image) {
-                        let matched = defaultOp.find(orig => orig.slug === s);
-                        if (matched) {
-                            return { ...matched, name, colour, url };
-                        }
-                    }
-
                     let cleanFront = p.front_image ? ('/' + p.front_image.replace(/^\/+/, '')) : '';
                     let cleanSide = p.side_image ? ('/' + p.side_image.replace(/^\/+/, '')) : '';
-                    let front = cleanFront || `/products/${s}-front.webp`;
-                    let side = cleanSide || (cleanFront || `/products/${s}-side.webp`);
+                    let cleanBack = p.back_image ? ('/' + p.back_image.replace(/^\/+/, '')) : '';
+
+                    let matched = defaultOp.find(orig => orig.slug === s);
+                    if (!cleanFront && !cleanSide && !cleanBack && matched) {
+                        return { ...matched, name, colour, url };
+                    }
+
+                    let front = cleanFront || (matched ? matched.front : `/products/${s}-front.webp`);
+                    let side = cleanSide || (matched ? matched.side : (cleanFront || `/products/${s}-side.webp`));
+                    let back = cleanBack || (matched ? matched.back : undefined);
 
                     or[front] = defaultGeom;
                     or[side] = defaultGeom;
@@ -6894,13 +6895,49 @@
                     os[front] = 1;
                     os[side] = 1;
 
+                    if (back) {
+                        or[back] = defaultGeom;
+                        or[back.replace(/^\/+/, '')] = defaultGeom;
+                        os[back] = 1;
+                    }
+
+                    let colourways = null;
+                    let rawCw = p.colourways;
+                    if (typeof rawCw === 'string') {
+                        try { rawCw = JSON.parse(rawCw); } catch(e) { rawCw = null; }
+                    }
+                    if (Array.isArray(rawCw) && rawCw.length > 0) {
+                        colourways = rawCw.map((cw, cIdx) => {
+                            let cwFront = cw.image ? ('/' + cw.image.replace(/^\/+/, '')) : front;
+                            let cwBack = cw.back_image ? ('/' + cw.back_image.replace(/^\/+/, '')) : back;
+                            or[cwFront] = defaultGeom;
+                            or[cwFront.replace(/^\/+/, '')] = defaultGeom;
+                            os[cwFront] = 1;
+                            if (cwBack) {
+                                or[cwBack] = defaultGeom;
+                                or[cwBack.replace(/^\/+/, '')] = defaultGeom;
+                                os[cwBack] = 1;
+                            }
+                            return {
+                                label: cw.name || cw.label || ('رنگ ' + (cIdx + 1)),
+                                hex: cw.code || cw.hex || '#1e1e1e',
+                                side: side,
+                                front: cwFront,
+                                back: cwBack
+                            };
+                        });
+                    } else if (matched && matched.colourways) {
+                        colourways = matched.colourways;
+                    }
+
                     return {
                         slug: s,
                         name: name,
                         colour: colour,
                         side: side,
                         front: front,
-                        back: undefined,
+                        back: back,
+                        colourways: colourways || void 0,
                         url: url
                     };
                 });

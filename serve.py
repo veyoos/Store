@@ -4,8 +4,9 @@
 The saved copy stores Next.js optimized images under hashed filenames, so
 /_next/image?url=... requests are mapped back to those files here.
 Also provides local preview handlers for /api/products.php, /api/orders.php,
-and the Persian Admin Panel (/admin/) with full Add/Edit/Delete product support
-so features can be previewed locally without requiring PHP/MySQL.
+and the Persian Admin Panel (/admin/) with full Add/Edit/Delete product support,
+triple-view image uploads (Side on rack, Front on hover, Back in focus),
+hanging size tags (S, M, L, XL, XXL, XXXL), and dynamic colourways.
 Usage: python3 serve.py [port]   (default 8080)
 """
 import os
@@ -37,8 +38,11 @@ DEFAULT_PRODUCTS = [
         "is_available": 1,
         "stock_quantity": 8,
         "color": "White",
+        "sizes": "S,M,L,XL,XXL",
+        "colourways": [],
         "front_image": "",
         "side_image": "",
+        "back_image": "",
         "buy_url": "",
         "description": "پیراهن آستین بلند نخی با کیفیت عالی و دوخت سفارشی"
     },
@@ -52,8 +56,15 @@ DEFAULT_PRODUCTS = [
         "is_available": 1,
         "stock_quantity": 15,
         "color": "Black / Pink / Yellow",
+        "sizes": "S,M,L,XL,XXL,XXXL",
+        "colourways": [
+            {"label": "Black", "hex": "#1e1e1e", "front": "/products/its-us-tee-black-front.webp", "side": "/products/its-us-tee-black-side.webp"},
+            {"label": "Pink", "hex": "#f6b1b4", "front": "/products/its-us-tee-bubblegum-front.webp", "side": "/products/its-us-tee-bubblegum-side.webp"},
+            {"label": "Yellow", "hex": "#f8dd2f", "front": "/products/its-us-tee-yellow-front.webp", "side": "/products/its-us-tee-yellow-side.webp"}
+        ],
         "front_image": "",
         "side_image": "",
+        "back_image": "",
         "buy_url": "",
         "description": "تی‌شرت اورسایز صددرصد پنبه با چاپ سیلک برجسته"
     },
@@ -67,8 +78,14 @@ DEFAULT_PRODUCTS = [
         "is_available": 1,
         "stock_quantity": 10,
         "color": "Black / Sand",
+        "sizes": "S,M,L,XL",
+        "colourways": [
+            {"label": "Black", "hex": "#2d2d2c", "front": "/products/tank-black-front.webp", "side": "/products/tank-black-side.webp"},
+            {"label": "Sand", "hex": "#b29e8b", "front": "/products/tank-sand-front.webp", "side": "/products/tank-sand-side.webp"}
+        ],
         "front_image": "",
         "side_image": "",
+        "back_image": "",
         "buy_url": "",
         "description": "تاپ راحتی شسته شده به سبک وینتیج با لوگوی آرت ورک"
     },
@@ -82,8 +99,11 @@ DEFAULT_PRODUCTS = [
         "is_available": 1,
         "stock_quantity": 4,
         "color": "Black",
+        "sizes": "M,L,XL,XXL",
+        "colourways": [],
         "front_image": "",
         "side_image": "",
+        "back_image": "",
         "buy_url": "",
         "description": "کاپشن بیسبالی ورسیتی کژوال با آستر گرم و دوخت باکیفیت"
     },
@@ -97,8 +117,11 @@ DEFAULT_PRODUCTS = [
         "is_available": 1,
         "stock_quantity": 12,
         "color": "Blue",
+        "sizes": "S,M,L,XL,XXL",
+        "colourways": [],
         "front_image": "",
         "side_image": "",
+        "back_image": "",
         "buy_url": "",
         "description": "تی‌شرت آستین کوتاه طرح کلاسیک با پارچه نرم و تنفس‌پذیر"
     },
@@ -112,8 +135,14 @@ DEFAULT_PRODUCTS = [
         "is_available": 1,
         "stock_quantity": 7,
         "color": "Yellow / Blue",
+        "sizes": "S,M,L,XL,XXL,XXXL",
+        "colourways": [
+            {"label": "Yellow", "hex": "#e3ca1e", "front": "/products/jersey-yellow-front.webp", "side": "/products/jersey-yellow-side.webp"},
+            {"label": "Blue", "hex": "#0842a9", "front": "/products/jersey-blue-front.webp", "side": "/products/jersey-blue-side.webp"}
+        ],
         "front_image": "",
         "side_image": "",
+        "back_image": "",
         "buy_url": "",
         "description": "پیراهن ورزشی استریت‌استایل با تن‌خور آزاد و جنس تنفس‌پذیر"
     },
@@ -127,8 +156,11 @@ DEFAULT_PRODUCTS = [
         "is_available": 1,
         "stock_quantity": 9,
         "color": "White",
+        "sizes": "S,M,L,XL,XXL",
+        "colourways": [],
         "front_image": "",
         "side_image": "",
+        "back_image": "",
         "buy_url": "",
         "description": "تی‌شرت یقه گرد مینیمال با پچ سیلیکونی برجسته"
     }
@@ -146,7 +178,14 @@ def load_products():
     if os.path.exists(DATA_FILE):
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                prods = json.load(f)
+                for p in prods:
+                    p.setdefault("side_image", "")
+                    p.setdefault("front_image", "")
+                    p.setdefault("back_image", "")
+                    p.setdefault("sizes", "S,M,L,XL,XXL,XXXL")
+                    p.setdefault("colourways", [])
+                return prods
         except Exception:
             pass
     save_products(DEFAULT_PRODUCTS)
@@ -218,7 +257,7 @@ def render_admin_html(msg="", msg_type="success"):
 
     rows = []
     for p in products:
-        img_src = p.get("front_image") or ""
+        img_src = p.get("front_image") or p.get("side_image") or ""
         if not img_src:
             img_src = f"/_next/image?url=%2Fproducts%2F{p['slug']}-front.webp&w=128&q=75"
         elif not img_src.startswith("/"):
@@ -227,6 +266,13 @@ def render_admin_html(msg="", msg_type="success"):
         status_badge = '<span class="badge badge-success">موجود</span>' if p.get("is_available") else '<span class="badge badge-danger">ناموجود</span>'
         formatted_price = f"{p['price']:,} {p.get('currency', 'تومان')}"
         prod_json = json.dumps(p, ensure_ascii=False).replace('"', '&quot;')
+
+        side_badge = '<span style="color:#22c55e;">Side ✔</span>' if (p.get('side_image') or not p.get('front_image')) else '<span style="color:#64748b;">Side ⚪</span>'
+        front_badge = '<span style="color:#3b82f6;">Front ✔</span>' if (p.get('front_image') or not p.get('side_image')) else '<span style="color:#64748b;">Front ⚪</span>'
+        back_badge = '<span style="color:#a855f7;">Back ✔</span>' if p.get('back_image') else '<span style="color:#64748b;">Back ⚪</span>'
+
+        cw_count = len(p.get('colourways') or [])
+        cw_badge = f'<span class="badge" style="background:rgba(236,72,153,0.15);color:#f472b6;border:1px solid rgba(236,72,153,0.3);">{cw_count} رنگ</span>' if cw_count > 0 else ''
 
         rows.append(f"""
         <tr>
@@ -242,7 +288,13 @@ def render_admin_html(msg="", msg_type="success"):
             </td>
             <td><code>{p.get('slug')}</code></td>
             <td style="color:#22c55e;font-weight:700;">{formatted_price}</td>
-            <td>{p.get('color') or '-'}</td>
+            <td>
+                <div>{p.get('color') or '-'} {cw_badge}</div>
+                <div style="font-size:11px;color:#38bdf8;margin-top:3px;">سایز: {p.get('sizes') or 'همه'}</div>
+            </td>
+            <td>
+                <div style="font-size:11px;display:flex;gap:6px;">{side_badge} {front_badge} {back_badge}</div>
+            </td>
             <td>{p.get('stock_quantity', 10)} عدد</td>
             <td>{status_badge}</td>
             <td>
@@ -260,12 +312,18 @@ def render_admin_html(msg="", msg_type="success"):
     for o in orders:
         status_color = "#eab308" if o.get("status") == "pending" else "#22c55e"
         status_name = "در انتظار" if o.get("status") == "pending" else "تکمیل شده"
+        
+        color_badge = f'<span class="badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);">{o.get("selected_color")}</span>' if o.get("selected_color") else '<span style="color:#64748b;">-</span>'
+        size_badge = f'<span class="badge" style="background:rgba(168,85,247,0.15);color:#c084fc;border:1px solid rgba(168,85,247,0.3);">{o.get("selected_size")}</span>' if o.get("selected_size") else '<span style="color:#64748b;">-</span>'
+
         order_rows.append(f"""
         <tr>
             <td>#{o.get('id', 1)}</td>
             <td><strong>{o.get('customer_name', '-')}</strong></td>
             <td><a href="tel:{o.get('customer_phone')}" style="color:#38bdf8;">{o.get('customer_phone', '-')}</a></td>
-            <td>{o.get('product_title', '-')}</td>
+            <td><strong>{o.get('product_title', '-')}</strong></td>
+            <td>{color_badge}</td>
+            <td>{size_badge}</td>
             <td style="font-size:12px;color:#94a3b8;">{o.get('customer_address', '-')}</td>
             <td><span class="badge" style="background:{status_color}22;color:{status_color};border:1px solid {status_color}55;">{status_name}</span></td>
             <td><small style="color:#64748b;">{o.get('created_at', 'لحظاتی پیش')}</small></td>
@@ -273,7 +331,7 @@ def render_admin_html(msg="", msg_type="success"):
         """)
 
     if not order_rows:
-        order_rows.append('<tr><td colspan="7" style="text-align:center;color:#64748b;padding:30px;">هنوز سفارشی ثبت نشده است.</td></tr>')
+        order_rows.append('<tr><td colspan="9" style="text-align:center;color:#64748b;padding:30px;">هنوز سفارشی ثبت نشده است.</td></tr>')
 
     alert_html = ""
     if msg:
@@ -297,7 +355,7 @@ def render_admin_html(msg="", msg_type="success"):
             padding: 20px;
             direction: rtl;
         }}
-        .container {{ max-width: 1200px; margin: 0 auto; }}
+        .container {{ max-width: 1240px; margin: 0 auto; }}
         header {{
             display: flex;
             justify-content: space-between;
@@ -377,6 +435,7 @@ def render_admin_html(msg="", msg_type="success"):
             border-radius: 999px;
             font-size: 11px;
             font-weight: 600;
+            display: inline-block;
         }}
         .badge-success {{ background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }}
         .badge-danger {{ background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }}
@@ -386,7 +445,7 @@ def render_admin_html(msg="", msg_type="success"):
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(6px);
             z-index: 10000;
             align-items: center;
@@ -398,8 +457,8 @@ def render_admin_html(msg="", msg_type="success"):
             border: 1px solid #282f42;
             border-radius: 16px;
             width: 100%;
-            max-width: 580px;
-            max-height: 90vh;
+            max-width: 680px;
+            max-height: 92vh;
             overflow-y: auto;
             padding: 24px;
             color: #f1f5f9;
@@ -414,6 +473,7 @@ def render_admin_html(msg="", msg_type="success"):
         }}
         .modal-close {{ background: none; border: none; font-size: 24px; color: #94a3b8; cursor: pointer; }}
         .form-row {{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }}
+        .form-row-3 {{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }}
         .form-group {{ margin-bottom: 14px; }}
         .form-group label {{ display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; font-weight: 500; }}
         .form-group input, .form-group select, .form-group textarea {{
@@ -426,6 +486,33 @@ def render_admin_html(msg="", msg_type="success"):
             font-size: 13px;
         }}
         .form-group input:focus, .form-group textarea:focus {{ outline: none; border-color: #3b82f6; }}
+        .view-upload-card {{
+            background: #0e1017;
+            border: 1px dashed #262d3e;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }}
+        .view-upload-card label {{ font-weight: 700; color: #cbd5e1; margin-bottom: 6px; }}
+        .view-upload-desc {{ font-size: 11px; color: #64748b; margin-bottom: 8px; }}
+        .size-checkbox-group {{
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }}
+        .size-cb-label {{
+            background: #0e1017;
+            border: 1px solid #282f42;
+            padding: 6px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }}
+        .size-cb-label input {{ width: auto; margin: 0; }}
     </style>
 </head>
 <body>
@@ -436,7 +523,7 @@ def render_admin_html(msg="", msg_type="success"):
             <span style="font-size: 28px;">👕</span>
             <div>
                 <h1>پنل مدیریت فروشگاه رگال</h1>
-                <span>سیستم مدیریت محصولات و دیتابیس آنلاین</span>
+                <span>سیستم مدیریت محصولات، تصاویر چندنما، سایزبندی و رنگ‌بندی پویا</span>
             </div>
         </div>
         <div class="nav-links">
@@ -452,7 +539,7 @@ def render_admin_html(msg="", msg_type="success"):
         <div class="card-header">
             <div>
                 <div class="card-title">📦 مدیریت کالکشن محصولات ({len(products)} محصول)</div>
-                <div style="font-size: 12px; color: #64748b; margin-top: 4px;">شما می‌توانید محصولات جدید اضافه کنید، قیمت‌ها را به‌روز کنید یا عکس آپلود نمایید.</div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 4px;">مدیریت کامل محصولات، تصاویر Side/Front/Back، تگ‌های آویزان سایز و رنگ‌بندی</div>
             </div>
             <button class="btn btn-green" onclick="openAddModal()">➕ افزودن محصول جدید</button>
         </div>
@@ -465,7 +552,8 @@ def render_admin_html(msg="", msg_type="success"):
                         <th>نام محصول</th>
                         <th>اسلاگ (Slug)</th>
                         <th>قیمت</th>
-                        <th>رنگ</th>
+                        <th>رنگ و سایزها</th>
+                        <th>نماها (Side/Front/Back)</th>
                         <th>موجودی</th>
                         <th>وضعیت</th>
                         <th>عملیات</th>
@@ -490,7 +578,9 @@ def render_admin_html(msg="", msg_type="success"):
                         <th>کد</th>
                         <th>مشتری</th>
                         <th>تلفن</th>
-                        <th>محصول سفارش داده شده</th>
+                        <th>محصول</th>
+                        <th>رنگ انتخابی</th>
+                        <th>سایز انتخابی</th>
                         <th>آدرس</th>
                         <th>وضعیت</th>
                         <th>زمان</th>
@@ -531,8 +621,8 @@ def render_admin_html(msg="", msg_type="success"):
                     <input type="text" name="slug" placeholder="مثال: vintage-hoodie (اختیاری)" style="direction: ltr;">
                 </div>
                 <div class="form-group">
-                    <label>رنگ لباس</label>
-                    <input type="text" name="color" placeholder="مثال: Black / Grey">
+                    <label>رنگ پیش‌فرض</label>
+                    <input type="text" name="color" placeholder="مثال: Black">
                 </div>
             </div>
 
@@ -552,6 +642,41 @@ def render_admin_html(msg="", msg_type="success"):
                 </div>
             </div>
 
+            <!-- انتخاب سایزبندی -->
+            <div class="form-group">
+                <label>📏 سایزبندی‌های موجود (برچسب‌های آویزان سمت چپ پیراهن):</label>
+                <div class="size-checkbox-group">
+                    <label class="size-cb-label"><input type="checkbox" name="sizes[]" value="S" checked> S</label>
+                    <label class="size-cb-label"><input type="checkbox" name="sizes[]" value="M" checked> M</label>
+                    <label class="size-cb-label"><input type="checkbox" name="sizes[]" value="L" checked> L</label>
+                    <label class="size-cb-label"><input type="checkbox" name="sizes[]" value="XL" checked> XL</label>
+                    <label class="size-cb-label"><input type="checkbox" name="sizes[]" value="XXL" checked> XXL</label>
+                    <label class="size-cb-label"><input type="checkbox" name="sizes[]" value="XXXL"> XXXL</label>
+                </div>
+            </div>
+
+            <!-- آپلود تصاویر ۳ نما -->
+            <div class="form-group">
+                <label>🖼️ تصاویر ۳ نما (Multi-View 3D):</label>
+                <div class="form-row-3">
+                    <div class="view-upload-card">
+                        <label>Side View</label>
+                        <div class="view-upload-desc">نمای کناری (روی رگال در حالت عادی)</div>
+                        <input type="file" name="product_image_side" accept="image/*">
+                    </div>
+                    <div class="view-upload-card">
+                        <label>Front View</label>
+                        <div class="view-upload-desc">نمای روبرو (هنگام هاور موس)</div>
+                        <input type="file" name="product_image_front" accept="image/*">
+                    </div>
+                    <div class="view-upload-card">
+                        <label>Back View</label>
+                        <div class="view-upload-desc">نمای پشت (چرخش در فوکوس)</div>
+                        <input type="file" name="product_image_back" accept="image/*">
+                    </div>
+                </div>
+            </div>
+
             <div class="form-row">
                 <div class="form-group">
                     <label>موجودی در انبار</label>
@@ -561,11 +686,6 @@ def render_admin_html(msg="", msg_type="success"):
                     <input type="checkbox" name="is_available" id="addIsAvailable" value="1" checked style="width: 20px; height: 20px;">
                     <label for="addIsAvailable" style="margin: 0; cursor: pointer; color: #fff;">محصول موجود است</label>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label>تصویر محصول (آپلود عکس JPG, PNG, WebP)</label>
-                <input type="file" name="product_image" accept="image/*">
             </div>
 
             <div class="form-group">
@@ -621,7 +741,7 @@ def render_admin_html(msg="", msg_type="success"):
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>رنگ لباس</label>
+                    <label>رنگ پیش‌فرض</label>
                     <input type="text" name="color" id="editColor">
                 </div>
                 <div class="form-group">
@@ -630,14 +750,44 @@ def render_admin_html(msg="", msg_type="success"):
                 </div>
             </div>
 
+            <!-- انتخاب سایزبندی ویرایش -->
+            <div class="form-group">
+                <label>📏 سایزبندی‌های موجود (برچسب‌های آویزان سمت چپ پیراهن):</label>
+                <div class="size-checkbox-group" id="editSizeGroup">
+                    <label class="size-cb-label"><input type="checkbox" name="sizes[]" value="S" id="sz_S"> S</label>
+                    <label class="size-cb-label"><input type="checkbox" name="sizes[]" value="M" id="sz_M"> M</label>
+                    <label class="size-cb-label"><input type="checkbox" name="sizes[]" value="L" id="sz_L"> L</label>
+                    <label class="size-cb-label"><input type="checkbox" name="sizes[]" value="XL" id="sz_XL"> XL</label>
+                    <label class="size-cb-label"><input type="checkbox" name="sizes[]" value="XXL" id="sz_XXL"> XXL</label>
+                    <label class="size-cb-label"><input type="checkbox" name="sizes[]" value="XXXL" id="sz_XXXL"> XXXL</label>
+                </div>
+            </div>
+
+            <!-- تصاویر ۳ نما برای ویرایش -->
+            <div class="form-group">
+                <label>🖼️ تغییر یا جایگزینی تصاویر ۳ نما (اختیاری):</label>
+                <div class="form-row-3">
+                    <div class="view-upload-card">
+                        <label>Side View</label>
+                        <div class="view-upload-desc">نمای کناری روی رگال</div>
+                        <input type="file" name="product_image_side" accept="image/*">
+                    </div>
+                    <div class="view-upload-card">
+                        <label>Front View</label>
+                        <div class="view-upload-desc">نمای روبرو در هاور</div>
+                        <input type="file" name="product_image_front" accept="image/*">
+                    </div>
+                    <div class="view-upload-card">
+                        <label>Back View</label>
+                        <div class="view-upload-desc">نمای پشت در فوکوس</div>
+                        <input type="file" name="product_image_back" accept="image/*">
+                    </div>
+                </div>
+            </div>
+
             <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
                 <input type="checkbox" name="is_available" id="editIsAvailable" value="1" style="width: 20px; height: 20px;">
                 <label for="editIsAvailable" style="margin: 0; cursor: pointer; color: #fff;">محصول موجود است</label>
-            </div>
-
-            <div class="form-group">
-                <label>تغییر یا جایگزینی تصویر (اختیاری)</label>
-                <input type="file" name="product_image" accept="image/*">
             </div>
 
             <div class="form-group">
@@ -667,6 +817,14 @@ function openEditModal(p) {{
     document.getElementById('editStock').value = p.stock_quantity || 0;
     document.getElementById('editIsAvailable').checked = parseInt(p.is_available) === 1;
     document.getElementById('editDescription').value = p.description || '';
+
+    // سایزبندی
+    const sizes = (p.sizes || 'S,M,L,XL,XXL').split(',').map(s => s.trim().toUpperCase());
+    ['S', 'M', 'L', 'XL', 'XXL', 'XXXL'].forEach(sz => {{
+        const el = document.getElementById('sz_' + sz);
+        if (el) el.checked = sizes.includes(sz);
+    }});
+
     document.getElementById('editModal').style.display = 'flex';
 }}
 function closeEditModal() {{ document.getElementById('editModal').style.display = 'none'; }}
@@ -696,7 +854,7 @@ class Handler(SimpleHTTPRequestHandler):
             html_path = os.path.join(ROOT, "index.html")
             with open(html_path, "r", encoding="utf-8") as f:
                 html = f.read()
-            injected_script = f'<script>window.STORE_BASE_PATH="/";window.__DB_PRODUCTS__ = {json.dumps(prods, ensure_ascii=False)};window.__DB_SETTINGS__ = {json.dumps(settings, ensure_ascii=False)};if(window.__DB_PRODUCTS__ && (window.__DB_PRODUCTS__.length !== 7 || window.__DB_PRODUCTS__.some(function(p){{ return p.front_image || p.side_image; }}))){{ document.documentElement.id = "__next_error__"; }}</script>'
+            injected_script = f'<script>window.STORE_BASE_PATH="/";window.__DB_PRODUCTS__ = {json.dumps(prods, ensure_ascii=False)};window.__DB_SETTINGS__ = {json.dumps(settings, ensure_ascii=False)};if(window.__DB_PRODUCTS__ && (window.__DB_PRODUCTS__.length !== 7 || window.__DB_PRODUCTS__.some(function(p){{ return p.front_image || p.side_image || p.back_image; }}))){{ document.documentElement.id = "__next_error__"; }}</script>'
             html = html.replace("<head>", f"<head>{injected_script}", 1)
             payload = html.encode("utf-8")
             self.send_response(200)
@@ -735,7 +893,6 @@ class Handler(SimpleHTTPRequestHandler):
                 with open(fpath, "rb") as f:
                     content = f.read()
                 self.send_response(200)
-                # guess content-type
                 ext = os.path.splitext(fpath)[1].lower()
                 ct = "image/jpeg"
                 if ext == ".png": ct = "image/png"
@@ -792,13 +949,14 @@ class Handler(SimpleHTTPRequestHandler):
         if parsed.path in ("/api/products.php", "/api/products"):
             prods = load_products()
             settings = load_settings()
-            # format prices and ensure image_urls
             formatted = []
             for p in prods:
                 item = dict(p)
                 item["formatted_price"] = f"{int(item['price']):,} {item.get('currency', 'تومان')}"
                 if item.get("front_image"):
                     item["image_url"] = item["front_image"]
+                elif item.get("side_image"):
+                    item["image_url"] = item["side_image"]
                 else:
                     item["image_url"] = f"_next/image?url=%2Fproducts%2F{item['slug']}-front.webp&w=640&q=75"
                 formatted.append(item)
@@ -837,6 +995,8 @@ class Handler(SimpleHTTPRequestHandler):
             order_info["id"] = new_id
             order_info["status"] = "pending"
             order_info["created_at"] = time.strftime("%Y-%m-%d %H:%M")
+            order_info.setdefault("selected_color", "")
+            order_info.setdefault("selected_size", "")
             orders.insert(0, order_info)
             save_orders(orders)
 
@@ -860,7 +1020,8 @@ class Handler(SimpleHTTPRequestHandler):
             ctype = self.headers.get("Content-Type", "")
 
             fields = {}
-            uploaded_filename = ""
+            fields_multi = {}
+            uploaded_files = {}
 
             if "multipart/form-data" in ctype:
                 msg = email.message_from_bytes(
@@ -868,31 +1029,33 @@ class Handler(SimpleHTTPRequestHandler):
                     policy=policy.default
                 )
                 for part in msg.iter_parts():
-                    cd = part.get("Content-Disposition")
                     name = part.get_param("name", header="content-disposition")
                     filename = part.get_filename()
-                    if filename:
-                        # save file
+                    if filename and name:
                         file_data = part.get_payload(decode=True)
                         if file_data and len(file_data) > 0:
                             ext = os.path.splitext(filename)[1].lower() or ".jpg"
-                            safe_name = f"upload-{int(time.time())}{ext}"
+                            safe_name = f"upload-{name}-{int(time.time() * 1000) % 1000000}{ext}"
                             with open(os.path.join(UPLOADS_DIR, safe_name), "wb") as f:
                                 f.write(file_data)
-                            uploaded_filename = "uploads/" + safe_name
+                            uploaded_files[name] = "uploads/" + safe_name
                     elif name:
                         payload_bytes = part.get_payload(decode=True)
+                        val = ""
                         if payload_bytes is not None:
                             try:
-                                fields[name] = payload_bytes.decode('utf-8').strip()
+                                val = payload_bytes.decode('utf-8').strip()
                             except Exception:
-                                fields[name] = payload_bytes.decode('latin-1', errors='ignore').strip()
+                                val = payload_bytes.decode('latin-1', errors='ignore').strip()
                         else:
-                            fields[name] = part.get_content().strip()
+                            val = part.get_content().strip()
+                        fields[name] = val
+                        fields_multi.setdefault(name, []).append(val)
             else:
                 parsed_qs = parse_qs(body.decode("utf-8"))
                 for k, v in parsed_qs.items():
                     fields[k] = v[0]
+                    fields_multi[k] = v
 
             action = fields.get("action", "")
             products = load_products()
@@ -910,6 +1073,13 @@ class Handler(SimpleHTTPRequestHandler):
                 is_available = 1 if fields.get("is_available") else 0
                 desc = fields.get("description", "")
 
+                sizes_list = fields_multi.get("sizes[]", fields_multi.get("sizes", []))
+                sizes_str = ",".join(sizes_list) if sizes_list else "S,M,L,XL,XXL"
+
+                side_img = uploaded_files.get("product_image_side", "")
+                front_img = uploaded_files.get("product_image_front", "") or uploaded_files.get("product_image", "")
+                back_img = uploaded_files.get("product_image_back", "")
+
                 new_id = max([p["id"] for p in products], default=0) + 1
                 new_prod = {
                     "id": new_id,
@@ -921,8 +1091,11 @@ class Handler(SimpleHTTPRequestHandler):
                     "is_available": is_available,
                     "stock_quantity": stock,
                     "color": color,
-                    "front_image": uploaded_filename,
-                    "side_image": "",
+                    "sizes": sizes_str,
+                    "colourways": [],
+                    "front_image": front_img,
+                    "side_image": side_img,
+                    "back_image": back_img,
                     "buy_url": "",
                     "description": desc
                 }
@@ -935,6 +1108,9 @@ class Handler(SimpleHTTPRequestHandler):
 
             elif action == "edit_product":
                 pid = int(fields.get("id", "0"))
+                sizes_list = fields_multi.get("sizes[]", fields_multi.get("sizes", []))
+                sizes_str = ",".join(sizes_list) if sizes_list else None
+
                 for p in products:
                     if p["id"] == pid:
                         p["title"] = fields.get("title", p["title"])
@@ -945,8 +1121,17 @@ class Handler(SimpleHTTPRequestHandler):
                         p["stock_quantity"] = int(fields.get("stock_quantity", p.get("stock_quantity", 10)) or 10)
                         p["is_available"] = 1 if fields.get("is_available") else 0
                         p["description"] = fields.get("description", p.get("description", ""))
-                        if uploaded_filename:
-                            p["front_image"] = uploaded_filename
+                        if sizes_str is not None:
+                            p["sizes"] = sizes_str
+
+                        if "product_image_side" in uploaded_files:
+                            p["side_image"] = uploaded_files["product_image_side"]
+                        if "product_image_front" in uploaded_files:
+                            p["front_image"] = uploaded_files["product_image_front"]
+                        elif "product_image" in uploaded_files:
+                            p["front_image"] = uploaded_files["product_image"]
+                        if "product_image_back" in uploaded_files:
+                            p["back_image"] = uploaded_files["product_image_back"]
                         break
                 save_products(products)
                 self.send_response(303)
@@ -966,18 +1151,30 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_error(404)
 
 
-if __name__ == "__main__":
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
-    host = os.environ.get("HOST", "0.0.0.0")
-    server = ThreadingHTTPServer((host, port), Handler)
-    url = f"http://{host if host != '0.0.0.0' else 'localhost'}:{port}"
-    print(f"Site is running at {url}  (press Ctrl+C to stop)")
-    if os.environ.get("NO_BROWSER") != "1" and os.environ.get("DISPLAY"):
+def main():
+    port = 8080
+    if len(sys.argv) > 1:
         try:
-            webbrowser.open(url)
-        except Exception:
+            port = int(sys.argv[1])
+        except ValueError:
             pass
+
+    server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
+    url = f"http://localhost:{port}/"
+    print(f"✨ Local Preview Server started at {url}")
+    print(f"👕 Main Store View:    {url}")
+    print(f"⚙️ Persian Admin Panel: {url}admin/")
+    print(f"📦 Products API:       {url}api/products.php")
+    print(f"🛍️ Orders API:         {url}api/orders.php")
+    print("Press Ctrl+C to stop.")
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        pass
+        print("\nStopping server.")
+    finally:
+        server.server_close()
+
+
+if __name__ == "__main__":
+    main()
