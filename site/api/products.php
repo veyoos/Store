@@ -54,7 +54,11 @@ $defaultProducts = [
         'stock_quantity' => 15,
         'color' => 'Black / Pink / Yellow',
         'sizes' => 'S,M,L,XL,XXL',
-        'colourways' => '',
+        'colourways' => [
+            ['label' => 'Black', 'hex' => '#1e1e1e', 'front' => '/products/its-us-tee-black-front.webp', 'side' => '/products/its-us-tee-black-side.webp'],
+            ['label' => 'Pink', 'hex' => '#f6b1b4', 'front' => '/products/its-us-tee-bubblegum-front.webp', 'side' => '/products/its-us-tee-bubblegum-side.webp'],
+            ['label' => 'Yellow', 'hex' => '#f8dd2f', 'front' => '/products/its-us-tee-yellow-front.webp', 'side' => '/products/its-us-tee-yellow-side.webp']
+        ],
         'buy_url' => '',
         'front_image' => '',
         'side_image' => '',
@@ -72,7 +76,10 @@ $defaultProducts = [
         'stock_quantity' => 10,
         'color' => 'Black / Sand',
         'sizes' => 'S,M,L,XL',
-        'colourways' => '',
+        'colourways' => [
+            ['label' => 'Black', 'hex' => '#2d2d2c', 'front' => '/products/tank-black-front.webp', 'side' => '/products/tank-black-side.webp'],
+            ['label' => 'Sand', 'hex' => '#b29e8b', 'front' => '/products/tank-sand-front.webp', 'side' => '/products/tank-sand-side.webp']
+        ],
         'buy_url' => '',
         'front_image' => '',
         'side_image' => '',
@@ -126,7 +133,10 @@ $defaultProducts = [
         'stock_quantity' => 7,
         'color' => 'Yellow / Blue',
         'sizes' => 'M,L,XL,XXL',
-        'colourways' => '',
+        'colourways' => [
+            ['label' => 'Yellow', 'hex' => '#e3ca1e', 'front' => '/products/jersey-yellow-front.webp', 'side' => '/products/jersey-yellow-side.webp'],
+            ['label' => 'Blue', 'hex' => '#0842a9', 'front' => '/products/jersey-blue-front.webp', 'side' => '/products/jersey-blue-side.webp']
+        ],
         'buy_url' => '',
         'front_image' => '',
         'side_image' => '',

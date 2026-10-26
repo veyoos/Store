@@ -118,6 +118,16 @@
                 z-index: 9999;
                 font-family: system-ui, -apple-system, sans-serif;
             }
+
+            /* حفظ نسبت طبیعی و ابعاد کشیده نمای بغل پیراهن روی رگال */
+            .garment-layer img {
+                object-fit: contain !important;
+                object-position: center top !important;
+            }
+            .fg-layer img {
+                object-fit: contain !important;
+                object-position: center top !important;
+            }
             .floating-btn {
                 background: rgba(15, 23, 42, 0.88);
                 backdrop-filter: blur(10px);

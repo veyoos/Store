@@ -6769,11 +6769,34 @@
             garmentX0: 107,
             garmentX1: 969
         };
+        let defaultSideGeom = {
+            width: 420,
+            height: 1448,
+            hookApexX: 210,
+            hookApexY: 15,
+            loopTopY: 15,
+            loopCenterX: 210,
+            loopInnerTopY: 22,
+            loopInnerBottomY: 50,
+            neckY: 107,
+            garmentTopY: 15,
+            garmentBottomY: 1345,
+            shoulderY: 539,
+            shoulderX0: 160,
+            shoulderX1: 260,
+            garmentX0: 140,
+            garmentX1: 280
+        };
         try {
             or = new Proxy(or, {
                 get(target, prop) {
                     if (prop in target) return target[prop];
-                    if (typeof prop === "string" && prop.length > 0) return defaultGeom;
+                    if (typeof prop === "string" && prop.length > 0) {
+                        if (prop.includes("side") || prop.includes("-s-") || prop.includes("_s.")) {
+                            return defaultSideGeom;
+                        }
+                        return defaultGeom;
+                    }
                     return target[prop];
                 }
             });
@@ -6783,6 +6806,11 @@
             os = new Proxy(os, {
                 get(target, prop) {
                     if (prop in target) return target[prop];
+                    if (typeof prop === "string" && prop.length > 0) {
+                        if (prop.includes("side") || prop.includes("-s-") || prop.includes("_s.")) {
+                            return (target[prop] !== undefined) ? target[prop] : 1;
+                        }
+                    }
                     return 1;
                 }
             });
@@ -6880,7 +6908,12 @@
                     let cleanBack = p.back_image ? ('/' + p.back_image.replace(/^\/+/, '')) : '';
 
                     let matched = defaultOp.find(orig => orig.slug === s);
-                    if (!cleanFront && !cleanSide && !cleanBack && matched) {
+                    let rawCw = p.colourways;
+                    if (typeof rawCw === 'string') {
+                        try { rawCw = JSON.parse(rawCw); } catch(e) { rawCw = null; }
+                    }
+
+                    if (!cleanFront && !cleanSide && !cleanBack && matched && (!rawCw || !Array.isArray(rawCw) || rawCw.length === 0)) {
                         return { ...matched, name, colour, url };
                     }
 
@@ -6888,40 +6921,84 @@
                     let side = cleanSide || (matched ? matched.side : (cleanFront || `/products/${s}-side.webp`));
                     let back = cleanBack || (matched ? matched.back : undefined);
 
-                    or[front] = defaultGeom;
-                    or[side] = defaultGeom;
-                    or[front.replace(/^\/+/, '')] = defaultGeom;
-                    or[side.replace(/^\/+/, '')] = defaultGeom;
+                    // Front geometry: only set if not already in original or
+                    if (!or[front]) or[front] = defaultGeom;
+                    if (!or[front.replace(/^\/+/, '')]) or[front.replace(/^\/+/, '')] = defaultGeom;
                     os[front] = 1;
-                    os[side] = 1;
+                    os[front.replace(/^\/+/, '')] = 1;
 
+                    // Side view geometry:
+                    // If cleanSide is a custom uploaded image, assign slender defaultSideGeom and scale
+                    let isCustomSide = cleanSide && (cleanSide.includes('upload') || !cleanSide.startsWith('/products/'));
+                    if (isCustomSide) {
+                        or[side] = defaultSideGeom;
+                        or[side.replace(/^\/+/, '')] = defaultSideGeom;
+                        os[side] = 420 / 1086;
+                        os[side.replace(/^\/+/, '')] = 420 / 1086;
+                    } else if (!or[side]) {
+                        or[side] = defaultSideGeom;
+                        os[side] = 1;
+                    }
+
+                    // Back view geometry
                     if (back) {
-                        or[back] = defaultGeom;
-                        or[back.replace(/^\/+/, '')] = defaultGeom;
+                        if (!or[back]) or[back] = defaultGeom;
+                        if (!or[back.replace(/^\/+/, '')]) or[back.replace(/^\/+/, '')] = defaultGeom;
                         os[back] = 1;
+                        os[back.replace(/^\/+/, '')] = 1;
                     }
 
+                    // Process colourways
                     let colourways = null;
-                    let rawCw = p.colourways;
-                    if (typeof rawCw === 'string') {
-                        try { rawCw = JSON.parse(rawCw); } catch(e) { rawCw = null; }
-                    }
                     if (Array.isArray(rawCw) && rawCw.length > 0) {
                         colourways = rawCw.map((cw, cIdx) => {
-                            let cwFront = cw.image ? ('/' + cw.image.replace(/^\/+/, '')) : front;
-                            let cwBack = cw.back_image ? ('/' + cw.back_image.replace(/^\/+/, '')) : back;
-                            or[cwFront] = defaultGeom;
-                            or[cwFront.replace(/^\/+/, '')] = defaultGeom;
-                            os[cwFront] = 1;
-                            if (cwBack) {
-                                or[cwBack] = defaultGeom;
-                                or[cwBack.replace(/^\/+/, '')] = defaultGeom;
-                                os[cwBack] = 1;
+                            let rawF = cw.front || cw.image || cw.front_image || cw.url;
+                            let rawS = cw.side || cw.side_image;
+                            let rawB = cw.back || cw.back_image;
+
+                            // Match built-in colourways if rawF not specified
+                            if (!rawF && matched && matched.colourways) {
+                                let mcw = matched.colourways.find(item => item.label.toLowerCase() === (cw.label || cw.name || '').toLowerCase());
+                                if (mcw) {
+                                    rawF = mcw.front;
+                                    rawS = rawS || mcw.side;
+                                    rawB = rawB || mcw.back;
+                                }
                             }
+                            if (!rawF) rawF = front;
+                            if (!rawS) rawS = side;
+
+                            let cwFront = '/' + rawF.replace(/^\/+/, '');
+                            let cwSide  = '/' + rawS.replace(/^\/+/, '');
+                            let cwBack  = rawB ? ('/' + rawB.replace(/^\/+/, '')) : back;
+
+                            if (!or[cwFront]) or[cwFront] = defaultGeom;
+                            if (!or[cwFront.replace(/^\/+/, '')]) or[cwFront.replace(/^\/+/, '')] = defaultGeom;
+                            os[cwFront] = 1;
+                            os[cwFront.replace(/^\/+/, '')] = 1;
+
+                            let isCwCustomSide = cwSide && (cwSide.includes('upload') || !cwSide.startsWith('/products/'));
+                            if (isCwCustomSide) {
+                                or[cwSide] = defaultSideGeom;
+                                or[cwSide.replace(/^\/+/, '')] = defaultSideGeom;
+                                os[cwSide] = 420 / 1086;
+                                os[cwSide.replace(/^\/+/, '')] = 420 / 1086;
+                            } else if (!or[cwSide]) {
+                                or[cwSide] = defaultSideGeom;
+                                os[cwSide] = 1;
+                            }
+
+                            if (cwBack) {
+                                if (!or[cwBack]) or[cwBack] = defaultGeom;
+                                if (!or[cwBack.replace(/^\/+/, '')]) or[cwBack.replace(/^\/+/, '')] = defaultGeom;
+                                os[cwBack] = 1;
+                                os[cwBack.replace(/^\/+/, '')] = 1;
+                            }
+
                             return {
-                                label: cw.name || cw.label || ('رنگ ' + (cIdx + 1)),
-                                hex: cw.code || cw.hex || '#1e1e1e',
-                                side: side,
+                                label: cw.label || cw.name || ('رنگ ' + (cIdx + 1)),
+                                hex: cw.hex || cw.code || '#1e1e1e',
+                                side: cwSide,
                                 front: cwFront,
                                 back: cwBack
                             };
@@ -8535,15 +8612,24 @@
                         let e = A.colourways,
                             i = e[t],
                             n = "back" === y.face && !!e[p].back && !!i.back;
-                        (o(o1(i.hex)), h) ? m(t): ($.current = !0, g({
+                        try { o(o1(i.hex)); } catch(err) {}
+                        m(t);
+                        if (h) return;
+                        $.current = !0;
+                        g({
                             from: n ? e[p].back : e[p].front,
                             to: n ? i.back : i.front,
                             back: n,
                             toIndex: t,
                             key: Date.now()
-                        }), B(R.get(), {
+                        });
+                        B(R.get(), {
                             kick: 2.5
-                        }))
+                        });
+                        setTimeout(() => {
+                            $.current = !1;
+                            g(null);
+                        }, 600);
                     }, [A.colourways, p, R, B, o, h, y.face]),
                     K = (0, s.useCallback)(() => {
                         if (!f) return;

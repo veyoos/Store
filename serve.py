@@ -185,6 +185,11 @@ def load_products():
                     p.setdefault("back_image", "")
                     p.setdefault("sizes", "S,M,L,XL,XXL,XXXL")
                     p.setdefault("colourways", [])
+                    if not p.get("colourways"):
+                        for dp in DEFAULT_PRODUCTS:
+                            if dp["slug"] == p["slug"] and dp.get("colourways"):
+                                p["colourways"] = list(dp["colourways"])
+                                break
                 return prods
         except Exception:
             pass
