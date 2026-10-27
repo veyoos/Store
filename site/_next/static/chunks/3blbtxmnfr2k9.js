@@ -5848,15 +5848,15 @@
                     tabIndex: t ? -1 : void 0,
                     children: "About"
                 }), (0, r.jsx)(sK.Image, {
-                    src: "/snug-wrld-logo.png",
+                    src: (typeof window !== "undefined" && window.__DB_SETTINGS__ && window.__DB_SETTINGS__.logo_url) ? window.__DB_SETTINGS__.logo_url : "/snug-wrld-logo.png",
                     width: 134,
                     height: 72,
-                    alt: "Snug Wrld",
+                    alt: "Store Logo",
                     preload: !0,
                     className: `${sJ} ${i}`,
                     style: {
-                        height: 36,
-                        width: "auto"
+                        height: (typeof window !== "undefined" && window.__DB_SETTINGS__ && window.__DB_SETTINGS__.logo_height) ? (parseInt(window.__DB_SETTINGS__.logo_height) || 36) : 36,
+                        width: (typeof window !== "undefined" && window.__DB_SETTINGS__ && window.__DB_SETTINGS__.logo_width && window.__DB_SETTINGS__.logo_width !== "auto") ? (parseInt(window.__DB_SETTINGS__.logo_width) || "auto") : "auto"
                     }
                 }), (0, r.jsxs)("div", {
                     className: "relative justify-self-end",
@@ -7041,7 +7041,7 @@
                             l = (a.loopInnerTopY + a.loopInnerBottomY) / 2,
                             u = {
                                 left: `calc(-1 * ${om(t)} * ${a.loopCenterX/a.width})`,
-                                top: isCustom ? "calc(var(--rod) / 2 + 14px)" : `calc(var(--rod) / 2 - ${of(t,a,l)})`,
+                                top: isCustom ? "calc(var(--rod) / 2 + var(--custom-top, 0px))" : `calc(var(--rod) / 2 - ${of(t,a,l)})`,
                                 width: `calc(${om(t)})`,
                                 aspectRatio: `${a.width} / ${a.height}`
                             },
@@ -7056,41 +7056,7 @@
                                 draggable: !1
                             });
                         if ("crest" === s) {
-                            if (isCustom) {
-                                return (0, r.jsx)(sG.div, {
-                                    className: "custom-hanger-crest",
-                                    style: {
-                                        position: "absolute",
-                                        top: "calc(var(--rod) / 2 - 18px)",
-                                        left: "-12px",
-                                        width: "24px",
-                                        height: "22px",
-                                        pointerEvents: "none",
-                                        opacity: e,
-                                        zIndex: 220
-                                    },
-                                    children: (0, r.jsxs)("svg", {
-                                        viewBox: "0 0 24 22",
-                                        width: "24",
-                                        height: "22",
-                                        fill: "none",
-                                        children: [
-                                            (0, r.jsx)("path", {
-                                                d: "M 5,20 C 5,7 9,2 14,2 C 18.5,2 21.5,5.5 21.5,10 C 21.5,14.5 18,18 13.5,18.5",
-                                                stroke: "#cbd5e1",
-                                                strokeWidth: "2.8",
-                                                strokeLinecap: "round"
-                                            }),
-                                            (0, r.jsx)("path", {
-                                                d: "M 5,20 C 5,7 9,2 14,2 C 18.5,2 21.5,5.5 21.5,10 C 21.5,14.5 18,18 13.5,18.5",
-                                                stroke: "rgba(255,255,255,0.65)",
-                                                strokeWidth: "1",
-                                                strokeLinecap: "round"
-                                            })
-                                        ]
-                                    })
-                                }, t + "-crest");
-                            }
+                            if (isCustom) return null;
                             let i = `calc(${of(t,a,l)} - var(--rod) / 2)`;
                             return (0, r.jsx)(sG.div, {
                                 className: "garment-layer",
@@ -7103,107 +7069,21 @@
                         }
                         if (isCustom) {
                             let isSide = (nIdx === 0);
-                            let hangerBody = isSide ? (0, r.jsx)("div", {
-                                className: "custom-hanger-body side",
-                                style: {
-                                    position: "absolute",
-                                    top: "-16px",
-                                    left: "50%",
-                                    transform: "translateX(-50%)",
-                                    width: "28px",
-                                    height: "36px",
-                                    pointerEvents: "none",
-                                    zIndex: 10
-                                },
-                                children: (0, r.jsxs)("svg", {
-                                    viewBox: "0 0 28 36",
-                                    width: "28",
-                                    height: "36",
-                                    fill: "none",
-                                    children: [
-                                        (0, r.jsx)("line", {
-                                            x1: "14",
-                                            y1: "0",
-                                            x2: "14",
-                                            y2: "16",
-                                            stroke: "#cbd5e1",
-                                            strokeWidth: "2.8",
-                                            strokeLinecap: "round"
-                                        }),
-                                        (0, r.jsx)("path", {
-                                            d: "M 7,16 C 7,16 21,16 21,16 C 23,22 23,28 21,34 C 7,34 5,28 7,16 Z",
-                                            fill: "#27272a",
-                                            stroke: "#3f3f46",
-                                            strokeWidth: "0.8"
-                                        })
-                                    ]
-                                })
-                            }) : (0, r.jsx)("div", {
-                                className: "custom-hanger-body front",
-                                style: {
-                                    position: "absolute",
-                                    top: "-16px",
-                                    left: "50%",
-                                    transform: "translateX(-50%)",
-                                    width: "140px",
-                                    height: "36px",
-                                    pointerEvents: "none",
-                                    zIndex: 10
-                                },
-                                children: (0, r.jsxs)("svg", {
-                                    viewBox: "0 0 140 36",
-                                    width: "140",
-                                    height: "36",
-                                    fill: "none",
-                                    children: [
-                                        (0, r.jsx)("line", {
-                                            x1: "70",
-                                            y1: "0",
-                                            x2: "70",
-                                            y2: "15",
-                                            stroke: "#cbd5e1",
-                                            strokeWidth: "2.8",
-                                            strokeLinecap: "round"
-                                        }),
-                                        (0, r.jsx)("ellipse", {
-                                            cx: "70",
-                                            cy: "15",
-                                            rx: "3.5",
-                                            ry: "2",
-                                            fill: "#a1a1aa"
-                                        }),
-                                        (0, r.jsx)("path", {
-                                            d: "M 8,34 C 38,20 62,15 70,15 C 78,15 102,20 132,34 C 112,35 84,24 70,24 C 56,24 28,35 8,34 Z",
-                                            fill: "#27272a",
-                                            stroke: "#3f3f46",
-                                            strokeWidth: "0.8"
-                                        }),
-                                        (0, r.jsx)("path", {
-                                            d: "M 12,32 C 40,19 62,15.5 70,15.5 C 78,15.5 100,19 128,32",
-                                            stroke: "rgba(255,255,255,0.25)",
-                                            strokeWidth: "0.8"
-                                        })
-                                    ]
-                                })
-                            });
-                            return (0, r.jsxs)(sG.div, {
+                            return (0, r.jsx)(sG.div, {
                                 className: "garment-layer layer-custom" + (isSide ? " layer-side" : " layer-front"),
                                 style: {
                                     ...u,
                                     opacity: e
                                 },
-                                children: [
-                                    hangerBody,
-                                    (0, r.jsx)(sG.div, {
-                                        className: "garment-piece",
-                                        style: {
-                                            scale: n,
-                                            originX: 0.5,
-                                            originY: 0.1
-                                        },
-                                        children: h
-                                    })
-                                ]
+                                children: (0, r.jsx)(sG.div, {
+                                    className: "garment-piece",
+                                    style: {
+                                        scale: n,
+                                        originX: 0.5,
+                                        originY: 0.1
+                                    },
+                                    children: h
+                                })
                             }, t);
                         }
                         let d = `${(a.neckY/a.height*100).toFixed(3)}%`;

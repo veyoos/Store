@@ -131,11 +131,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
 
+                    $cwBack = '';
+                    if (!empty($_FILES['cw_back_file']['name'][$k]) && $_FILES['cw_back_file']['error'][$k] === UPLOAD_ERR_OK) {
+                        $ext = strtolower(pathinfo($_FILES['cw_back_file']['name'][$k], PATHINFO_EXTENSION));
+                        if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'])) {
+                            $cwBname = 'cw-' . $slug . '-' . $k . '-b-' . time() . '.' . $ext;
+                            if (move_uploaded_file($_FILES['cw_back_file']['tmp_name'][$k], $uploadDir . $cwBname)) {
+                                $cwBack = 'uploads/' . $cwBname;
+                            }
+                        }
+                    }
+
                     $cwList[] = [
                         'label' => $cwLabel,
                         'hex'   => $cwHex,
                         'front' => $cwFront ?: $frontImage,
-                        'side'  => $cwSide ?: $sideImage
+                        'side'  => $cwSide ?: $sideImage,
+                        'back'  => $cwBack ?: ($backImage ?: '')
                     ];
                 }
             }
@@ -205,11 +217,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
+                $cwBack = trim($_POST['cw_existing_back'][$k] ?? '');
+                if (!empty($_FILES['cw_back_file']['name'][$k]) && $_FILES['cw_back_file']['error'][$k] === UPLOAD_ERR_OK) {
+                    $ext = strtolower(pathinfo($_FILES['cw_back_file']['name'][$k], PATHINFO_EXTENSION));
+                    if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'])) {
+                        $cwBname = 'cw-p' . $id . '-' . $k . '-b-' . time() . '.' . $ext;
+                        if (move_uploaded_file($_FILES['cw_back_file']['tmp_name'][$k], $uploadDir . $cwBname)) {
+                            $cwBack = 'uploads/' . $cwBname;
+                        }
+                    }
+                }
+
                 $cwList[] = [
                     'label' => $cwLabel,
                     'hex'   => $cwHex,
                     'front' => $cwFront,
-                    'side'  => $cwSide
+                    'side'  => $cwSide,
+                    'back'  => $cwBack
                 ];
             }
         }
@@ -266,12 +290,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ۴. به‌روزرسانی تنظیمات
     if ($action === 'update_settings' && $db) {
+        $logoUrl = trim($_POST['logo_url'] ?? '');
+        $newLogo = handle_single_upload('logo_file', 'logo');
+        if (!empty($newLogo)) {
+            $logoUrl = $newLogo;
+        }
+
         $settingsToUpdate = [
             'store_title'   => $_POST['store_title'] ?? '',
             'marquee_text'  => $_POST['marquee_text'] ?? '',
             'contact_phone' => $_POST['contact_phone'] ?? '',
             'instagram'     => $_POST['instagram'] ?? '',
-            'telegram'      => $_POST['telegram'] ?? ''
+            'telegram'      => $_POST['telegram'] ?? '',
+            'logo_url'      => $logoUrl,
+            'logo_height'   => $_POST['logo_height'] ?? '36',
+            'logo_width'    => $_POST['logo_width'] ?? 'auto'
         ];
         try {
             $stmt = $db->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
@@ -324,7 +357,10 @@ $settings = [
     'marquee_text' => 'NEW DROPS',
     'contact_phone' => '',
     'instagram' => '',
-    'telegram' => ''
+    'telegram' => '',
+    'logo_url' => '',
+    'logo_height' => '36',
+    'logo_width' => 'auto'
 ];
 
 if ($db) {
@@ -534,7 +570,7 @@ $tab = $_GET['tab'] ?? 'products';
         }
         .cw-row {
             display: grid;
-            grid-template-columns: 100px 70px 1fr 1fr 40px;
+            grid-template-columns: 100px 60px 1fr 1fr 1fr 40px;
             gap: 8px;
             align-items: center;
             margin-bottom: 10px;
@@ -737,9 +773,36 @@ $tab = $_GET['tab'] ?? 'products';
 
     <?php elseif ($tab === 'settings'): ?>
         <div class="card" style="max-width: 600px;">
-            <div class="card-title" style="margin-bottom: 18px;">تنظیمات اطلاعات فروشگاه</div>
-            <form method="POST">
+            <div class="card-title" style="margin-bottom: 18px;">تنظیمات لوگو و اطلاعات فروشگاه</div>
+            <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="update_settings">
+
+                <div class="form-group" style="background: #181c28; padding: 14px; border-radius: 10px; border: 1px solid #222838;">
+                    <label style="color: #60a5fa; font-weight: 700; margin-bottom: 8px; display: block;">لوگوی بالای صفحه (Header Logo)</label>
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <?php if (!empty($settings['logo_url'])): ?>
+                            <div style="background: #0f1219; padding: 8px 14px; border-radius: 8px; border: 1px solid #222838;">
+                                <img src="../<?= htmlspecialchars($settings['logo_url']) ?>" alt="Logo Preview" style="height: <?= htmlspecialchars($settings['logo_height'] ?: '36') ?>px; max-width: 140px; object-fit: contain;">
+                            </div>
+                        <?php endif; ?>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="font-size: 11px; color: #94a3b8;">آپلود عکس جدید لوگو (PNG/SVG/WebP/JPG):</label>
+                            <input type="file" name="logo_file" accept="image/*" style="font-size: 12px; padding: 6px;">
+                            <input type="hidden" name="logo_url" value="<?= htmlspecialchars($settings['logo_url']) ?>">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                        <div>
+                            <label style="font-size: 11px; color: #94a3b8;">ارتفاع لوگو (پیکسل):</label>
+                            <input type="number" name="logo_height" value="<?= htmlspecialchars($settings['logo_height'] ?: '36') ?>" min="16" max="150" placeholder="36">
+                        </div>
+                        <div>
+                            <label style="font-size: 11px; color: #94a3b8;">عرض لوگو (یا auto):</label>
+                            <input type="text" name="logo_width" value="<?= htmlspecialchars($settings['logo_width'] ?: 'auto') ?>" placeholder="auto">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>عنوان اصلی فروشگاه</label>
                     <input type="text" name="store_title" value="<?= htmlspecialchars($settings['store_title']) ?>" required>
@@ -1056,6 +1119,7 @@ function addColourwayRow(containerId, data = null, index = null) {
     const hex = data ? (data.hex || '#000000') : '#000000';
     const existingFront = data ? (data.front || '') : '';
     const existingSide = data ? (data.side || '') : '';
+    const existingBack = data ? (data.back || '') : '';
 
     const row = document.createElement('div');
     row.className = 'cw-row';
@@ -1068,14 +1132,19 @@ function addColourwayRow(containerId, data = null, index = null) {
             <input type="color" name="cw_hex[]" value="${hex}" style="height: 36px; padding: 2px; cursor: pointer; border-radius: 6px;">
         </div>
         <div>
-            <label style="font-size: 10px; color: #94a3b8; display: block;">عکس جلو:</label>
+            <label style="font-size: 10px; color: #94a3b8; display: block;">عکس جلو (Front):</label>
             <input type="file" name="cw_front_file[]" accept="image/*" style="padding: 4px; font-size: 11px;">
             <input type="hidden" name="cw_existing_front[]" value="${existingFront}">
         </div>
         <div>
-            <label style="font-size: 10px; color: #94a3b8; display: block;">عکس بغل:</label>
+            <label style="font-size: 10px; color: #94a3b8; display: block;">عکس بغل (Side):</label>
             <input type="file" name="cw_side_file[]" accept="image/*" style="padding: 4px; font-size: 11px;">
             <input type="hidden" name="cw_existing_side[]" value="${existingSide}">
+        </div>
+        <div>
+            <label style="font-size: 10px; color: #94a3b8; display: block;">عکس پشت (Back):</label>
+            <input type="file" name="cw_back_file[]" accept="image/*" style="padding: 4px; font-size: 11px;">
+            <input type="hidden" name="cw_existing_back[]" value="${existingBack}">
         </div>
         <div>
             <button type="button" class="btn btn-red btn-sm" onclick="document.getElementById('${rowId}').remove()" style="padding: 6px 10px;">✕</button>

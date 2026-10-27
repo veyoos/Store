@@ -36,6 +36,7 @@
                     if (data.settings.store_title) {
                         document.title = data.settings.store_title;
                     }
+                    applyLogo(data.settings);
                 }
                 updateCatalogUI();
             }
@@ -52,6 +53,32 @@
             tracks.forEach(span => {
                 span.textContent = text + '  •  ' + text + '  •  ';
             });
+        } catch (e) {}
+    }
+
+    // به‌روزرسانی لوگو و اندازه آن در بالای صفحه
+    function applyLogo(settings) {
+        if (!settings) return;
+        try {
+            const logoImg = document.querySelector('header img');
+            if (logoImg) {
+                if (settings.logo_url) {
+                    let logoSrc = settings.logo_url;
+                    if (!logoSrc.startsWith('http') && !logoSrc.startsWith('/')) {
+                        logoSrc = getBasePath() + logoSrc;
+                    }
+                    logoImg.src = logoSrc;
+                    logoImg.srcset = '';
+                }
+                if (settings.logo_height) {
+                    logoImg.style.height = settings.logo_height + 'px';
+                    logoImg.style.maxHeight = settings.logo_height + 'px';
+                }
+                if (settings.logo_width && settings.logo_width !== 'auto') {
+                    logoImg.style.width = settings.logo_width + 'px';
+                    logoImg.style.maxWidth = settings.logo_width + 'px';
+                }
+            }
         } catch (e) {}
     }
 
@@ -169,13 +196,12 @@
                 object-position: center top !important;
             }
 
-            /* قلاب و چوب‌لباسی فلزی سه‌بعدی روی میله رگال */
-            .custom-hanger-crest {
-                filter: drop-shadow(0 1.5px 2px rgba(0,0,0,0.35));
+            /* حذف کامل نوار سبز رنگ متحرک پایین صفحه */
+            .bg-brand,
+            div[class*="bg-brand"] {
+                display: none !important;
             }
-            .custom-hanger-body {
-                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.22));
-            }
+
             .floating-btn {
                 background: rgba(15, 23, 42, 0.88);
                 backdrop-filter: blur(10px);
@@ -1111,6 +1137,9 @@
         try {
             injectStyles();
             addFloatingButtons();
+            if (window.__DB_SETTINGS__) {
+                applyLogo(window.__DB_SETTINGS__);
+            }
             loadStoreData().then(() => {
                 observeProductFocus();
             });
