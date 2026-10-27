@@ -119,7 +119,7 @@
                 font-family: system-ui, -apple-system, sans-serif;
             }
 
-            /* حفظ نسبت طبیعی و ابعاد کشیده نمای بغل پیراهن روی رگال */
+            /* حفظ تناسب طبیعی و ابعاد محصولات روی رگال */
             .garment-layer img {
                 object-fit: contain !important;
                 object-position: center top !important;
@@ -127,6 +127,49 @@
             .fg-layer img {
                 object-fit: contain !important;
                 object-position: center top !important;
+            }
+
+            /* نمای باریک و ظریف کناری برای محصولات آپلودی روی رگال */
+            .garment-layer.layer-custom.layer-side img,
+            .layer-side img[src*="upload"],
+            .layer-side img[src*="uploads"] {
+                width: 44% !important;
+                max-width: 44% !important;
+                height: 100% !important;
+                margin: 0 auto !important;
+                object-fit: contain !important;
+                object-position: center top !important;
+            }
+
+            /* نمای روبرو برای محصولات آپلودی روی رگال */
+            .garment-layer.layer-custom.layer-front img,
+            .layer-front img[src*="upload"],
+            .layer-front img[src*="uploads"] {
+                width: 94% !important;
+                max-width: 94% !important;
+                height: 100% !important;
+                margin: 0 auto !important;
+                object-fit: contain !important;
+                object-position: center top !important;
+            }
+
+            /* نمایش تمیز عکس محصول در صفحه فوکوس و جزئیات */
+            .fg-layer.fg-custom img,
+            .fg-layer img[src*="upload"],
+            .fg-layer img[src*="uploads"] {
+                width: 92% !important;
+                height: 100% !important;
+                margin: 0 auto !important;
+                object-fit: contain !important;
+                object-position: center top !important;
+            }
+
+            /* قلاب و چوب‌لباسی فلزی سه‌بعدی روی میله رگال */
+            .custom-hanger-crest {
+                filter: drop-shadow(0 1.5px 2px rgba(0,0,0,0.35));
+            }
+            .custom-hanger-body {
+                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.22));
             }
             .floating-btn {
                 background: rgba(15, 23, 42, 0.88);
