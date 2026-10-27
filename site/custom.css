@@ -1,0 +1,68 @@
+/* ==========================================================================
+   فایل اختصاصی تنظیم اندازه و ظاهر لباس‌ها در فروشگاه (Custom Garment Styles)
+   محل فایل در هاست: public_html/store/custom.css
+   شما می‌توانید این فایل را مستقیماً در File Manager ویرایش کرده و ذخیره نمایید.
+   ========================================================================== */
+
+/* ۱. ابعاد کلی کادر هر لباس روی رگال */
+/* برای بزرگ‌تر یا کوچک‌تر کردن کل رگال و لباس‌ها، اندازه زیر را تغییر دهید: */
+.rack {
+    /* به طور پیش‌فرض: --iw: min(36vh, 22.5vw); */
+    /* برای ۲۰٪ بزرگ‌تر شدن می‌توانید خط زیر را فعال کنید: */
+    /* --iw: min(42vh, 26vw) !important; */
+}
+
+/* ۲. تنظیم عکس لباس‌ها روی رگال */
+.garment-layer img {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    object-position: center top !important;
+}
+
+/* ۳. تنظیم نمای کناری لباس روی رگال (Side View) */
+/* با تغییر مقدار scaleX می‌توانید عرض نمای بغل را به دلخواه تنظیم کنید:
+   scaleX(1) = عرض کامل ۱۰۰٪
+   scaleX(0.75) = عرض سه‌چهارم (طبیعی و خوش‌فرم)
+   scaleX(0.6) = باریک‌تر
+*/
+.garment-layer.layer-side img,
+.layer-side img[src*="upload"],
+.layer-side img[src*="uploads"] {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: center top !important;
+    transform: scaleX(0.75) !important;
+    transform-origin: center top !important;
+}
+
+/* ۴. تنظیم نمای روبروی لباس روی رگال (Front View) */
+.garment-layer.layer-front img,
+.layer-front img[src*="upload"],
+.layer-front img[src*="uploads"] {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: center top !important;
+    transform: scale(1) !important;
+}
+
+/* ۵. تنظیم اندازه عکس در صفحه زوم و مشخصات لباس (Focus View) */
+.fg-layer img,
+.fg-layer.fg-custom img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: center top !important;
+}
+
+/* ۶. تنظیمات قلاب چوب‌لباسی فلزی روی میله */
+.custom-hanger-crest {
+    filter: drop-shadow(0 1.5px 2px rgba(0, 0, 0, 0.35));
+}
+.custom-hanger-body {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.22));
+}

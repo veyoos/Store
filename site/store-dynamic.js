@@ -129,35 +129,40 @@
                 object-position: center top !important;
             }
 
-            /* نمای باریک و ظریف کناری برای محصولات آپلودی روی رگال */
+            /* نمای طبیعی و متناسب کناری برای محصولات روی رگال */
             .garment-layer.layer-custom.layer-side img,
             .layer-side img[src*="upload"],
             .layer-side img[src*="uploads"] {
-                width: 44% !important;
-                max-width: 44% !important;
+                width: 100% !important;
                 height: 100% !important;
+                max-width: 100% !important;
+                max-height: 100% !important;
                 margin: 0 auto !important;
                 object-fit: contain !important;
                 object-position: center top !important;
+                transform: scaleX(0.75) !important;
+                transform-origin: center top !important;
             }
 
-            /* نمای روبرو برای محصولات آپلودی روی رگال */
+            /* نمای روبرو برای محصولات روی رگال */
             .garment-layer.layer-custom.layer-front img,
             .layer-front img[src*="upload"],
             .layer-front img[src*="uploads"] {
-                width: 94% !important;
-                max-width: 94% !important;
+                width: 100% !important;
                 height: 100% !important;
+                max-width: 100% !important;
+                max-height: 100% !important;
                 margin: 0 auto !important;
                 object-fit: contain !important;
                 object-position: center top !important;
+                transform: scale(1) !important;
             }
 
             /* نمایش تمیز عکس محصول در صفحه فوکوس و جزئیات */
             .fg-layer.fg-custom img,
             .fg-layer img[src*="upload"],
             .fg-layer img[src*="uploads"] {
-                width: 92% !important;
+                width: 100% !important;
                 height: 100% !important;
                 margin: 0 auto !important;
                 object-fit: contain !important;
