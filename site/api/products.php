@@ -18,7 +18,10 @@ $response = [
         'marquee_text' => 'IT\'S US, NEVER THEM  •  NEW DROPS  •  کالکشن جدید لباس  •  ارسال به سراسر کشور',
         'contact_phone' => '09120000000',
         'instagram' => '@store_iran',
-        'telegram' => '@store_iran'
+        'telegram' => '@store_iran',
+        'logo_url' => '',
+        'logo_height' => '36',
+        'logo_width' => 'auto'
     ],
     'products' => []
 ];

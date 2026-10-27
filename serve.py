@@ -171,7 +171,10 @@ DEFAULT_SETTINGS = {
     "marquee_text": "IT'S US, NEVER THEM  •  NEW DROPS  •  کالکشن جدید لباس  •  ارسال به سراسر کشور",
     "contact_phone": "09120000000",
     "instagram": "@store_iran",
-    "telegram": "@store_iran"
+    "telegram": "@store_iran",
+    "logo_url": "",
+    "logo_height": "36",
+    "logo_width": "auto"
 }
 
 def load_products():
@@ -1150,6 +1153,21 @@ class Handler(SimpleHTTPRequestHandler):
                 save_products(products)
                 self.send_response(303)
                 self.send_header("Location", "/admin/index.php?msg=deleted")
+                self.end_headers()
+                return
+
+            elif action == "update_settings":
+                settings = load_settings()
+                for key in ["store_title", "marquee_text", "contact_phone", "instagram", "telegram", "logo_height", "logo_width"]:
+                    if key in fields:
+                        settings[key] = fields[key]
+                if "logo_url" in fields and fields["logo_url"]:
+                    settings["logo_url"] = fields["logo_url"]
+                if "logo_file" in uploaded_files and uploaded_files["logo_file"]:
+                    settings["logo_url"] = uploaded_files["logo_file"]
+                save_settings(settings)
+                self.send_response(303)
+                self.send_header("Location", "/admin/index.php?tab=settings&msg=settings_saved")
                 self.end_headers()
                 return
 

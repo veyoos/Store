@@ -1,18 +1,34 @@
 /* ==========================================================================
-   فایل اختصاصی تنظیم اندازه و ظاهر لباس‌ها در فروشگاه (Custom Garment Styles)
-   محل فایل در هاست: public_html/store/custom.css
-   شما می‌توانید این فایل را مستقیماً در File Manager ویرایش کرده و ذخیره نمایید.
+   فایل اختصاصی تنظیم اندازه، موقعیت و ظاهر لباس‌ها در فروشگاه (Custom Styles)
+   محل فایل در هاست: public_html/store/custom.css (یا public_html/custom.css)
+   شما می‌توانید این فایل را در cPanel File Manager باز کرده و به دلخواه تغییر دهید.
    ========================================================================== */
 
-/* ۱. ابعاد کلی کادر هر لباس روی رگال */
-/* برای بزرگ‌تر یا کوچک‌تر کردن کل رگال و لباس‌ها، اندازه زیر را تغییر دهید: */
-.rack {
-    /* به طور پیش‌فرض: --iw: min(36vh, 22.5vw); */
-    /* برای ۲۰٪ بزرگ‌تر شدن می‌توانید خط زیر را فعال کنید: */
-    /* --iw: min(42vh, 26vw) !important; */
+/* ۱. متغیرهای سراسری موقعیت و مقیاس لباس‌ها */
+:root {
+    /* جابجایی عمودی لباس: عدد مثبت به پایین، عدد منفی به بالا (مثلاً -15px یا 20px) */
+    --custom-top: 0px;
+
+    /* جابجایی افقی لباس: عدد مثبت به راست و عدد منفی به چپ */
+    --custom-left: 0px;
+
+    /* ضریب بزرگ‌نمایی کلی لباس‌ها (۱ یعنی اندازه استاندارد ۱۰۰٪) */
+    --custom-scale: 1;
 }
 
-/* ۲. تنظیم عکس لباس‌ها روی رگال */
+/* ۲. حذف کامل نوار سبز رنگ متحرک پایین صفحه */
+.bg-brand,
+div[class*="bg-brand"] {
+    display: none !important;
+}
+
+/* ۳. ابعاد کلی کادر هر لباس روی رگال (Rack Item Width) */
+/* در صورت تمایل به تغییر سایز کل رگال، خط زیر را فعال کنید: */
+.rack {
+    /* --iw: min(36vh, 22.5vw); */
+}
+
+/* ۴. تنظیم عکس لباس‌ها روی رگال (موقعیت، فیت و جابجایی) */
 .garment-layer img {
     width: 100% !important;
     height: 100% !important;
@@ -20,14 +36,13 @@
     max-height: 100% !important;
     object-fit: contain !important;
     object-position: center top !important;
+    /* اعمال جابجایی افقی/عمودی و مقیاس: */
+    transform: translate(var(--custom-left, 0px), var(--custom-top, 0px)) scale(var(--custom-scale, 1)) !important;
+    transform-origin: center top !important;
 }
 
-/* ۳. تنظیم نمای کناری لباس روی رگال (Side View) */
-/* با تغییر مقدار scaleX می‌توانید عرض نمای بغل را به دلخواه تنظیم کنید:
-   scaleX(1) = عرض کامل ۱۰۰٪
-   scaleX(0.75) = عرض سه‌چهارم (طبیعی و خوش‌فرم)
-   scaleX(0.6) = باریک‌تر
-*/
+/* ۵. تنظیم اختصاصی برای نمای کناری لباس روی رگال (Side View) */
+/* scaleX(0.75) عرض سه‌چهارم است؛ برای عرض کامل ۱۰۰٪ می‌توانید scaleX را 1 بگذارید */
 .garment-layer.layer-side img,
 .layer-side img[src*="upload"],
 .layer-side img[src*="uploads"] {
@@ -35,11 +50,11 @@
     height: 100% !important;
     object-fit: contain !important;
     object-position: center top !important;
-    transform: scaleX(0.75) !important;
+    transform: translate(var(--custom-left, 0px), var(--custom-top, 0px)) scaleX(0.75) scaleY(var(--custom-scale, 1)) !important;
     transform-origin: center top !important;
 }
 
-/* ۴. تنظیم نمای روبروی لباس روی رگال (Front View) */
+/* ۶. تنظیم اختصاصی برای نمای روبروی لباس روی رگال (Front View) */
 .garment-layer.layer-front img,
 .layer-front img[src*="upload"],
 .layer-front img[src*="uploads"] {
@@ -47,22 +62,21 @@
     height: 100% !important;
     object-fit: contain !important;
     object-position: center top !important;
-    transform: scale(1) !important;
+    transform: translate(var(--custom-left, 0px), var(--custom-top, 0px)) scale(var(--custom-scale, 1)) !important;
+    transform-origin: center top !important;
 }
 
-/* ۵. تنظیم اندازه عکس در صفحه زوم و مشخصات لباس (Focus View) */
+/* ۷. تنظیم اختصاصی کانتینر لباس برای جابجایی مستقیم (در صورت تمایل) */
+.garment-layer.layer-custom {
+    /* مثال برای جابجایی عمودی مستقیم کادر: */
+    /* top: calc(var(--rod) / 2 + 10px) !important; */
+}
+
+/* ۸. تنظیم اندازه عکس در صفحه فوکوس و جزئیات محصول (Focus View) */
 .fg-layer img,
 .fg-layer.fg-custom img {
     width: 100% !important;
     height: 100% !important;
     object-fit: contain !important;
     object-position: center top !important;
-}
-
-/* ۶. تنظیمات قلاب چوب‌لباسی فلزی روی میله */
-.custom-hanger-crest {
-    filter: drop-shadow(0 1.5px 2px rgba(0, 0, 0, 0.35));
-}
-.custom-hanger-body {
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.22));
 }

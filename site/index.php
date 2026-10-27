@@ -75,6 +75,20 @@ if ($baseClean !== '/') {
     $html = str_replace('href="/store-dynamic.js"', 'href="' . $baseClean . 'store-dynamic.js"', $html);
 }
 
+// جایگزینی لوگوی اختصاصی در صورت تنظیم در پنل مدیریت
+if (!empty($settings['logo_url'])) {
+    $logoUrl = $settings['logo_url'];
+    if (strpos($logoUrl, 'http') !== 0 && strpos($logoUrl, '/') !== 0) {
+        $logoUrl = $baseClean . $logoUrl;
+    }
+    $html = preg_replace('#src="[^"]*snug-wrld-logo\.png[^"]*"#i', 'src="' . htmlspecialchars($logoUrl) . '"', $html);
+    $html = preg_replace('#srcSet="[^"]*snug-wrld-logo\.png[^"]*"#i', '', $html);
+    if (!empty($settings['logo_height'])) {
+        $lh = (int)$settings['logo_height'];
+        $html = str_replace('height:36px;width:auto', 'height:' . $lh . 'px;width:auto', $html);
+    }
+}
+
 // تزریق داده‌های پایگاه داده به متغیرهای گلوبال جاوااسکریپت قبل از اجرای باندل Next.js
 $injectedScript = '<script>';
 $injectedScript .= 'window.STORE_BASE_PATH="' . $baseClean . '";';
