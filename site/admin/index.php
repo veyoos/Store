@@ -51,6 +51,20 @@ function handle_single_upload($fileInputName, $prefix = 'product') {
     return '';
 }
 
+function delete_uploaded_file($relativePath) {
+    if (empty($relativePath) || !is_string($relativePath)) return;
+    $relativePath = ltrim($relativePath, '/');
+    if (strpos($relativePath, 'uploads/') !== false) {
+        $sub = substr($relativePath, strpos($relativePath, 'uploads/'));
+        $siteRoot = realpath(__DIR__ . '/..');
+        $fullPath = realpath($siteRoot . '/' . $sub);
+        $baseUploadDir = realpath($siteRoot . '/uploads');
+        if ($fullPath && $baseUploadDir && strpos($fullPath, $baseUploadDir) === 0 && is_file($fullPath)) {
+            @unlink($fullPath);
+        }
+    }
+}
+
 // پردازش فرم‌ها
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -274,13 +288,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // ۳. حذف محصول
+    // ۳. حذف محصول و پاکسازی تمام عکس‌های آن از روی سرور
     if ($action === 'delete_product' && $db) {
         $id = (int)$_POST['id'];
         try {
+            // دریافت مشخصات تصاویر محصول قبل از حذف رکورد دیتابیس
+            $stmt = $db->prepare("SELECT front_image, side_image, back_image, colourways FROM products WHERE id = ?");
+            $stmt->execute([$id]);
+            $prod = $stmt->fetch();
+
+            if ($prod) {
+                delete_uploaded_file($prod['front_image'] ?? '');
+                delete_uploaded_file($prod['side_image'] ?? '');
+                delete_uploaded_file($prod['back_image'] ?? '');
+
+                if (!empty($prod['colourways'])) {
+                    $cws = is_array($prod['colourways']) ? $prod['colourways'] : json_decode($prod['colourways'], true);
+                    if (is_array($cws)) {
+                        foreach ($cws as $cw) {
+                            if (is_array($cw)) {
+                                delete_uploaded_file($cw['front'] ?? '');
+                                delete_uploaded_file($cw['side'] ?? '');
+                                delete_uploaded_file($cw['back'] ?? '');
+                            }
+                        }
+                    }
+                }
+            }
+
             $stmt = $db->prepare("DELETE FROM products WHERE id = ?");
             $stmt->execute([$id]);
-            $msg = 'محصول با موفقیت حذف شد.';
+            $msg = 'محصول و تمامی تصاویر اختصاصی آن با موفقیت از روی هاست حذف شدند.';
             $msgType = 'success';
         } catch (Exception $e) {
             $msg = 'خطا در حذف محصول: ' . $e->getMessage();
