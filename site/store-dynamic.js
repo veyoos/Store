@@ -183,22 +183,6 @@
                 text-align: center;
                 line-height: 16px;
             }
-            .floating-dock-admin {
-                background: rgba(255, 255, 255, 0.06);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                color: #e2e8f0;
-            }
-            .floating-dock-admin:hover {
-                background: rgba(255, 255, 255, 0.15);
-                color: #ffffff;
-                border-color: rgba(255, 255, 255, 0.25);
-            }
-            .floating-dock-divider {
-                width: 1px;
-                height: 18px;
-                background: rgba(255, 255, 255, 0.16);
-                margin: 0 2px;
-            }
             @media (max-width: 640px) {
                 .floating-actions-bar {
                     bottom: 16px;
@@ -1173,7 +1157,7 @@
         }
     }
 
-    // ۵. افزودن دکمه‌های شناور (مشاهده محصولات + پنل مدیریت) در قالب داک شیشه‌ای مدرن
+    // ۵. افزودن دکمه شناور مشاهده محصولات در قالب داک شیشه‌ای مدرن (بدون لینک پنل مدیریت برای امنیت)
     function addFloatingButtons() {
         if (document.getElementById('floatingActionsBar')) return;
         try {
@@ -1197,26 +1181,7 @@
             `;
             catalogBtn.addEventListener('click', openCatalogModal);
 
-            const divider = document.createElement('div');
-            divider.className = 'floating-dock-divider';
-
-            const adminLink = document.createElement('a');
-            adminLink.id = 'adminFloatingBtn';
-            adminLink.className = 'floating-dock-btn floating-dock-admin';
-            adminLink.href = getBasePath() + 'admin/';
-            adminLink.target = '_blank';
-            adminLink.setAttribute('aria-label', 'ورود به پنل مدیریت');
-            adminLink.innerHTML = `
-                <svg class="dock-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3"></circle>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                </svg>
-                <span>پنل مدیریت</span>
-            `;
-
             bar.appendChild(catalogBtn);
-            bar.appendChild(divider);
-            bar.appendChild(adminLink);
             document.body.appendChild(bar);
         } catch (e) {}
     }
@@ -1316,120 +1281,140 @@
         }
     }
 
+    let isUpdatingFocusDOM = false;
+
     // ۷. اتصال داده‌های دیتابیس به پنجره Focus جزئیات محصول در رگال طبق ترتیب مشخص‌شده
     function observeProductFocus() {
         try {
             const observer = new MutationObserver(function() {
+                if (isUpdatingFocusDOM) return;
+
                 const infoEl = document.querySelector('.focus-info .info');
                 const focusSlide = document.querySelector('.focus-slide');
                 const dockEl = document.getElementById('floatingActionsBar');
 
                 if (infoEl) {
-                    if (dockEl) dockEl.classList.add('in-focus');
+                    if (dockEl && !dockEl.classList.contains('in-focus')) {
+                        dockEl.classList.add('in-focus');
+                    }
 
                     const nameEl = infoEl.querySelector('.info-name');
                     if (nameEl) {
                         const prodName = nameEl.textContent.trim();
-                        const matched = findProduct(prodName);
-                        
-                        // تزریق برچسب‌های آویزان سایز در سمت چپ رگال (در موبایل چیپ‌های افقی بالا)
-                        if (focusSlide) {
-                            injectSizeHangingTags(focusSlide, matched);
+
+                        // جلوگیری قطعی از حلقه جهش تکراری و کرش مرورگر
+                        if (infoEl.dataset.configuredProd === prodName) {
+                            return;
                         }
 
-                        // ردیابی کلیک روی تگ‌های رنگ سمت راست
-                        const tagsWrap = document.querySelector('.focus-tags-wrap');
-                        if (tagsWrap && !tagsWrap.dataset.listenerAttached) {
-                            tagsWrap.dataset.listenerAttached = 'true';
-                            tagsWrap.addEventListener('click', function() {
-                                setTimeout(() => syncActiveColorFromTags(matched), 100);
-                            });
-                        }
-                        syncActiveColorFromTags(matched);
-
-                        // حذف متای قدیمی در صورت وجود
-                        const oldMeta = infoEl.querySelector('.dynamic-product-meta');
-                        if (oldMeta) oldMeta.remove();
-
-                        // (۱) نمای عقب و جلو
-                        const segEl = infoEl.querySelector('.seg');
-                        if (segEl && segEl.parentNode === infoEl && infoEl.firstElementChild !== segEl) {
-                            infoEl.insertBefore(segEl, infoEl.firstElementChild);
-                        }
-
-                        // (۲) اسم محصول
-                        if (nameEl && segEl && segEl.nextSibling !== nameEl) {
-                            segEl.insertAdjacentElement('afterend', nameEl);
-                        }
-
-                        // عنوان فارسی زیر اسم محصول
-                        let faTitle = infoEl.querySelector('.dynamic-fa-title');
-                        if (matched && matched.title_fa) {
-                            if (!faTitle) {
-                                faTitle = document.createElement('div');
-                                faTitle.className = 'dynamic-fa-title';
+                        isUpdatingFocusDOM = true;
+                        try {
+                            infoEl.dataset.configuredProd = prodName;
+                            const matched = findProduct(prodName);
+                            
+                            // تزریق برچسب‌های آویزان سایز در سمت چپ رگال (در موبایل چیپ‌های افقی بالا)
+                            if (focusSlide) {
+                                injectSizeHangingTags(focusSlide, matched);
                             }
-                            faTitle.textContent = matched.title_fa;
-                            nameEl.insertAdjacentElement('afterend', faTitle);
-                        } else if (faTitle) {
-                            faTitle.remove();
-                            faTitle = null;
-                        }
 
-                        const lastHeaderEl = faTitle || nameEl;
-
-                        // (۳) موجودی انبار
-                        let stockEl = infoEl.querySelector('.dynamic-stock-wrapper');
-                        if (!stockEl) {
-                            stockEl = document.createElement('div');
-                            stockEl.className = 'dynamic-stock-wrapper';
-                        }
-                        const isAvailable = matched ? !!matched.is_available : true;
-                        stockEl.innerHTML = `<span class="dynamic-badge ${isAvailable ? 'badge-instock' : 'badge-outstock'}"><span class="badge-dot">●</span> ${isAvailable ? 'موجود در انبار' : 'اتمام موجودی'}</span>`;
-                        lastHeaderEl.insertAdjacentElement('afterend', stockEl);
-
-                        // (۴) قیمت
-                        let priceEl = infoEl.querySelector('.dynamic-price-wrapper');
-                        if (!priceEl) {
-                            priceEl = document.createElement('div');
-                            priceEl.className = 'dynamic-price-wrapper';
-                        }
-                        const formattedPrice = matched ? (matched.formatted_price || (matched.price ? matched.price.toLocaleString() + ' ' + (matched.currency || 'تومان') : '')) : '';
-                        priceEl.innerHTML = `<span class="dynamic-price">${formattedPrice}</span>`;
-                        stockEl.insertAdjacentElement('afterend', priceEl);
-
-                        // (۵) گزینه ثبت سفارش
-                        let ctaBtn = infoEl.querySelector('.info-cta');
-                        if (ctaBtn) {
-                            ctaBtn.className = 'info-cta dynamic-order-btn ' + (isAvailable ? 'btn-available' : 'btn-disabled');
-                            ctaBtn.removeAttribute('target');
-                            ctaBtn.removeAttribute('href');
-                            ctaBtn.setAttribute('type', 'button');
-                            ctaBtn.innerHTML = `<span>🛒</span> <span>${isAvailable ? 'خرید / ثبت سفارش' : 'اتمام موجودی'}</span>`;
-                            priceEl.insertAdjacentElement('afterend', ctaBtn);
-
-                            if (ctaBtn.dataset.boundProd !== prodName) {
-                                ctaBtn.dataset.boundProd = prodName;
-                                const newCta = ctaBtn.cloneNode(true);
-                                newCta.addEventListener('click', function(e) {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    if (!isAvailable) {
-                                        alert('این محصول در حال حاضر ناموجود است.');
-                                        return;
-                                    }
-                                    if (matched && matched.buy_url && matched.buy_url.trim() !== '') {
-                                        window.open(matched.buy_url, '_blank');
-                                    } else {
-                                        openOrderModal(matched, window.__SELECTED_COLOR__, window.__SELECTED_SIZE__);
-                                    }
+                            // ردیابی کلیک روی تگ‌های رنگ سمت راست
+                            const tagsWrap = document.querySelector('.focus-tags-wrap');
+                            if (tagsWrap && !tagsWrap.dataset.listenerAttached) {
+                                tagsWrap.dataset.listenerAttached = 'true';
+                                tagsWrap.addEventListener('click', function() {
+                                    setTimeout(() => syncActiveColorFromTags(matched), 100);
                                 });
-                                ctaBtn.parentNode.replaceChild(newCta, ctaBtn);
                             }
+                            syncActiveColorFromTags(matched);
+
+                            // حذف متای قدیمی در صورت وجود
+                            const oldMeta = infoEl.querySelector('.dynamic-product-meta');
+                            if (oldMeta) oldMeta.remove();
+
+                            // (۱) نمای عقب و جلو
+                            const segEl = infoEl.querySelector('.seg');
+                            if (segEl && segEl.parentNode === infoEl && infoEl.firstElementChild !== segEl) {
+                                infoEl.insertBefore(segEl, infoEl.firstElementChild);
+                            }
+
+                            // (۲) اسم محصول
+                            if (nameEl && segEl && segEl.nextSibling !== nameEl) {
+                                segEl.insertAdjacentElement('afterend', nameEl);
+                            }
+
+                            // عنوان فارسی زیر اسم محصول
+                            let faTitle = infoEl.querySelector('.dynamic-fa-title');
+                            if (matched && matched.title_fa) {
+                                if (!faTitle) {
+                                    faTitle = document.createElement('div');
+                                    faTitle.className = 'dynamic-fa-title';
+                                }
+                                faTitle.textContent = matched.title_fa;
+                                nameEl.insertAdjacentElement('afterend', faTitle);
+                            } else if (faTitle) {
+                                faTitle.remove();
+                                faTitle = null;
+                            }
+
+                            const lastHeaderEl = faTitle || nameEl;
+
+                            // (۳) موجودی انبار
+                            let stockEl = infoEl.querySelector('.dynamic-stock-wrapper');
+                            if (!stockEl) {
+                                stockEl = document.createElement('div');
+                                stockEl.className = 'dynamic-stock-wrapper';
+                            }
+                            const isAvailable = matched ? !!matched.is_available : true;
+                            stockEl.innerHTML = `<span class="dynamic-badge ${isAvailable ? 'badge-instock' : 'badge-outstock'}"><span class="badge-dot">●</span> ${isAvailable ? 'موجود در انبار' : 'اتمام موجودی'}</span>`;
+                            lastHeaderEl.insertAdjacentElement('afterend', stockEl);
+
+                            // (۴) قیمت
+                            let priceEl = infoEl.querySelector('.dynamic-price-wrapper');
+                            if (!priceEl) {
+                                priceEl = document.createElement('div');
+                                priceEl.className = 'dynamic-price-wrapper';
+                            }
+                            const formattedPrice = matched ? (matched.formatted_price || (matched.price ? matched.price.toLocaleString() + ' ' + (matched.currency || 'تومان') : '')) : '';
+                            priceEl.innerHTML = `<span class="dynamic-price">${formattedPrice}</span>`;
+                            stockEl.insertAdjacentElement('afterend', priceEl);
+
+                            // (۵) گزینه ثبت سفارش
+                            let ctaBtn = infoEl.querySelector('.info-cta');
+                            if (ctaBtn) {
+                                ctaBtn.className = 'info-cta dynamic-order-btn ' + (isAvailable ? 'btn-available' : 'btn-disabled');
+                                ctaBtn.removeAttribute('target');
+                                ctaBtn.removeAttribute('href');
+                                ctaBtn.setAttribute('type', 'button');
+                                ctaBtn.innerHTML = `<span>🛒</span> <span>${isAvailable ? 'خرید / ثبت سفارش' : 'اتمام موجودی'}</span>`;
+                                priceEl.insertAdjacentElement('afterend', ctaBtn);
+
+                                if (ctaBtn.dataset.boundProd !== prodName) {
+                                    ctaBtn.dataset.boundProd = prodName;
+                                    const newCta = ctaBtn.cloneNode(true);
+                                    newCta.addEventListener('click', function(e) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        if (!isAvailable) {
+                                            alert('این محصول در حال حاضر ناموجود است.');
+                                            return;
+                                        }
+                                        if (matched && matched.buy_url && matched.buy_url.trim() !== '') {
+                                            window.open(matched.buy_url, '_blank');
+                                        } else {
+                                            openOrderModal(matched, window.__SELECTED_COLOR__, window.__SELECTED_SIZE__);
+                                        }
+                                    });
+                                    ctaBtn.parentNode.replaceChild(newCta, ctaBtn);
+                                }
+                            }
+                        } finally {
+                            isUpdatingFocusDOM = false;
                         }
                     }
                 } else {
-                    if (dockEl) dockEl.classList.remove('in-focus');
+                    if (dockEl && dockEl.classList.contains('in-focus')) {
+                        dockEl.classList.remove('in-focus');
+                    }
                     const existingSizes = document.getElementById('focusSizesWrap');
                     if (existingSizes) existingSizes.remove();
                 }

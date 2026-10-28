@@ -1149,6 +1149,26 @@ class Handler(SimpleHTTPRequestHandler):
 
             elif action == "delete_product":
                 pid = int(fields.get("id", "0"))
+                to_delete = [p for p in products if p["id"] == pid]
+                for p in to_delete:
+                    imgs_to_remove = []
+                    for key in ["front_image", "side_image", "back_image"]:
+                        if p.get(key):
+                            imgs_to_remove.append(p[key])
+                    for cw in p.get("colourways", []):
+                        if isinstance(cw, dict):
+                            for key in ["front", "side", "back"]:
+                                if cw.get(key):
+                                    imgs_to_remove.append(cw[key])
+                    for img_rel in imgs_to_remove:
+                        if "uploads/" in img_rel:
+                            sub = img_rel.split("uploads/", 1)[1]
+                            fpath = os.path.join(UPLOADS_DIR, sub)
+                            if os.path.isfile(fpath):
+                                try:
+                                    os.remove(fpath)
+                                except OSError:
+                                    pass
                 products = [p for p in products if p["id"] != pid]
                 save_products(products)
                 self.send_response(303)
