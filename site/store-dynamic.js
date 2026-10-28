@@ -110,40 +110,246 @@
         const style = document.createElement('style');
         style.id = 'store-dynamic-styles';
         style.textContent = `
-            .dynamic-product-meta {
-                margin: 10px 0 14px 0;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                flex-wrap: wrap;
-                font-family: system-ui, -apple-system, sans-serif;
-            }
-            .dynamic-price {
-                font-size: 19px;
-                font-weight: 700;
-                color: #22c55e;
-                direction: rtl;
-            }
-            .dynamic-badge {
-                font-size: 11px;
-                font-weight: 600;
-                padding: 3px 8px;
-                border-radius: 999px;
-                letter-spacing: 0.02em;
-            }
-            .badge-instock { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); }
-            .badge-outstock { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
-
-            /* دکمه‌های شناور پایین صفحه */
+            /* داک شناور شیشه‌ای مدرن و لوکس پایین صفحه (کاتالوگ محصولات و پنل مدیریت) */
             .floating-actions-bar {
                 position: fixed;
-                bottom: 45px;
-                right: 16px;
+                bottom: 24px;
+                left: 50%;
+                transform: translateX(-50%);
                 display: flex;
                 align-items: center;
-                gap: 10px;
+                gap: 6px;
                 z-index: 9999;
                 font-family: system-ui, -apple-system, sans-serif;
+                direction: rtl;
+                background: rgba(15, 23, 42, 0.75);
+                backdrop-filter: blur(20px) saturate(180%);
+                -webkit-backdrop-filter: blur(20px) saturate(180%);
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+                border-radius: 9999px;
+                padding: 6px 8px;
+                transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s;
+                opacity: 1;
+                pointer-events: auto;
+                visibility: visible;
+            }
+            .floating-actions-bar.in-focus {
+                opacity: 0 !important;
+                pointer-events: none !important;
+                visibility: hidden !important;
+                transform: translateX(-50%) translateY(24px) scale(0.95) !important;
+            }
+            .floating-dock-btn {
+                border: none;
+                background: transparent;
+                color: #f1f5f9;
+                font-size: 13px;
+                font-weight: 500;
+                padding: 8px 16px;
+                border-radius: 9999px;
+                text-decoration: none;
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+                cursor: pointer;
+                outline: none;
+                user-select: none;
+                white-space: nowrap;
+            }
+            .floating-dock-btn:hover {
+                transform: translateY(-1px);
+            }
+            .floating-dock-catalog {
+                background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                color: #ffffff;
+                font-weight: 600;
+                border: 1px solid rgba(147, 197, 253, 0.35);
+                box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35);
+            }
+            .floating-dock-catalog:hover {
+                background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+                box-shadow: 0 4px 16px rgba(37, 99, 235, 0.55);
+            }
+            .catalog-count-badge {
+                background: rgba(255, 255, 255, 0.22);
+                color: #ffffff;
+                font-size: 11px;
+                font-weight: 700;
+                padding: 1px 7px;
+                border-radius: 999px;
+                min-width: 18px;
+                text-align: center;
+                line-height: 16px;
+            }
+            .floating-dock-admin {
+                background: rgba(255, 255, 255, 0.06);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: #e2e8f0;
+            }
+            .floating-dock-admin:hover {
+                background: rgba(255, 255, 255, 0.15);
+                color: #ffffff;
+                border-color: rgba(255, 255, 255, 0.25);
+            }
+            .floating-dock-divider {
+                width: 1px;
+                height: 18px;
+                background: rgba(255, 255, 255, 0.16);
+                margin: 0 2px;
+            }
+            @media (max-width: 640px) {
+                .floating-actions-bar {
+                    bottom: 16px;
+                    padding: 5px 6px;
+                    gap: 4px;
+                    max-width: calc(100vw - 32px);
+                }
+                .floating-dock-btn {
+                    font-size: 12px;
+                    padding: 7px 12px;
+                    gap: 5px;
+                }
+            }
+
+            /* استایل و ترتیب کارت جزئیات فوکوس محصول:
+               (۱) نمای عقب و جلو
+               (۲) اسم محصول
+               (۳) موجودی انبار
+               (۴) قیمت
+               (۵) گزینه ثبت سفارش */
+            .focus-info {
+                z-index: 50;
+            }
+            .focus-info .info {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
+                gap: 6px !important;
+                text-align: center !important;
+                direction: rtl !important;
+            }
+            /* (۱) نمای عقب و جلو */
+            .focus-info .info .seg {
+                order: 1 !important;
+                margin-top: 0 !important;
+                margin-bottom: 4px !important;
+                direction: ltr !important;
+            }
+            /* (۲) اسم محصول */
+            .focus-info .info .info-name {
+                order: 2 !important;
+                margin: 0 !important;
+                height: auto !important;
+                line-height: 1.25 !important;
+                font-size: 22px !important;
+                letter-spacing: -0.01em !important;
+                direction: ltr !important;
+            }
+            .focus-info .info .dynamic-fa-title {
+                order: 2 !important;
+                font-size: 13px !important;
+                color: #94a3b8 !important;
+                font-weight: 500 !important;
+                margin-top: 2px !important;
+                line-height: 1.4 !important;
+                direction: rtl !important;
+            }
+            /* (۳) موجودی انبار */
+            .focus-info .info .dynamic-stock-wrapper {
+                order: 3 !important;
+                margin: 2px 0 !important;
+                display: flex !important;
+                justify-content: center !important;
+            }
+            .dynamic-badge {
+                font-size: 11.5px !important;
+                font-weight: 600 !important;
+                padding: 3px 12px !important;
+                border-radius: 9999px !important;
+                letter-spacing: 0.02em !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 5px !important;
+            }
+            .badge-instock {
+                background: rgba(34, 197, 94, 0.15) !important;
+                color: #4ade80 !important;
+                border: 1px solid rgba(34, 197, 94, 0.35) !important;
+            }
+            .badge-outstock {
+                background: rgba(239, 68, 68, 0.15) !important;
+                color: #f87171 !important;
+                border: 1px solid rgba(239, 68, 68, 0.35) !important;
+            }
+            .badge-dot {
+                font-size: 9px !important;
+                line-height: 1 !important;
+            }
+            /* (۴) قیمت */
+            .focus-info .info .dynamic-price-wrapper {
+                order: 4 !important;
+                margin: 2px 0 !important;
+                display: flex !important;
+                justify-content: center !important;
+            }
+            .dynamic-price {
+                font-size: 20px !important;
+                font-weight: 700 !important;
+                color: #f8fafc !important;
+                direction: rtl !important;
+                letter-spacing: -0.01em !important;
+            }
+            /* (۵) گزینه ثبت سفارش */
+            .focus-info .info .info-cta,
+            .focus-info .info .dynamic-order-btn {
+                order: 5 !important;
+                margin-top: 6px !important;
+                height: auto !important;
+                border: none !important;
+                border-bottom: none !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 8px !important;
+                background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+                color: #ffffff !important;
+                font-size: 13.5px !important;
+                font-weight: 600 !important;
+                padding: 9px 26px !important;
+                border-radius: 9999px !important;
+                letter-spacing: 0.02em !important;
+                text-decoration: none !important;
+                cursor: pointer !important;
+                box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4) !important;
+                transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            }
+            .focus-info .info .info-cta:after,
+            .focus-info .info .dynamic-order-btn:after {
+                display: none !important;
+            }
+            .focus-info .info .info-cta:hover,
+            .focus-info .info .dynamic-order-btn:hover {
+                background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+                transform: translateY(-2px) !important;
+                box-shadow: 0 6px 20px rgba(37, 99, 235, 0.55) !important;
+                opacity: 1 !important;
+            }
+            .focus-info .info .dynamic-order-btn.btn-disabled {
+                background: rgba(100, 116, 139, 0.3) !important;
+                color: #94a3b8 !important;
+                border: 1px solid rgba(100, 116, 139, 0.3) !important;
+                box-shadow: none !important;
+                cursor: not-allowed !important;
+                transform: none !important;
+            }
+
+            /* حذف هرگونه پیوند بازمانده به aradazr */
+            a[href*="aradazr.site"],
+            .info-cta[href*="aradazr.site"] {
+                display: none !important;
             }
 
             /* حفظ تناسب طبیعی و ابعاد محصولات روی رگال */
@@ -202,37 +408,6 @@
                 display: none !important;
             }
 
-            .floating-btn {
-                background: rgba(15, 23, 42, 0.88);
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.18);
-                color: #f1f5f9;
-                font-size: 12px;
-                font-weight: 600;
-                padding: 8px 16px;
-                border-radius: 20px;
-                text-decoration: none;
-                transition: all 0.2s;
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                cursor: pointer;
-                box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-            }
-            .floating-btn:hover {
-                background: #1e293b;
-                color: #fff;
-                transform: translateY(-2px);
-                border-color: rgba(255, 255, 255, 0.35);
-            }
-            .floating-btn-catalog {
-                background: #2563eb;
-                border-color: #3b82f6;
-            }
-            .floating-btn-catalog:hover {
-                background: #1d4ed8;
-            }
-
             /* برچسب‌های آویزان انتخاب سایز در سمت چپ پیراهن (قرینه تگ‌های رنگ در سمت راست) */
             .focus-sizes-wrap {
                 right: calc(var(--fiw, 400px) * .44);
@@ -244,24 +419,11 @@
                 pointer-events: auto;
                 direction: ltr;
             }
-            @media (max-width: 640px) {
-                .focus-sizes-wrap {
-                    right: auto;
-                    left: 10px;
-                    top: calc(var(--fiw, 320px) * .12);
-                }
-            }
             .size-tags {
                 display: flex;
                 flex-direction: row-reverse;
                 gap: 6px;
                 pointer-events: none;
-            }
-            @media (max-width: 640px) {
-                .size-tags {
-                    flex-direction: column;
-                    gap: 0;
-                }
             }
             .size-tagwrap {
                 transform-origin: 50% 0;
@@ -350,6 +512,100 @@
                 position: absolute;
                 inset: auto 6px 6px;
                 border-radius: 2px;
+            }
+
+            /* اصلاح نمایش انتخاب سایز در موبایل: چیپ‌های افقی شیک و لمسی بالای چوب‌لباسی بدون نخ‌های عمودی */
+            @media (max-width: 640px) {
+                .focus-sizes-wrap {
+                    position: absolute !important;
+                    left: 0 !important;
+                    right: auto !important;
+                    transform: translateX(-50%) !important;
+                    top: -46px !important;
+                    z-index: 100 !important;
+                    pointer-events: auto !important;
+                    direction: ltr !important;
+                    width: auto !important;
+                    max-width: 90vw !important;
+                    display: flex !important;
+                    justify-content: center !important;
+                }
+                .size-tags {
+                    display: flex !important;
+                    flex-direction: row !important;
+                    flex-wrap: nowrap !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 6px !important;
+                    pointer-events: auto !important;
+                    background: rgba(15, 23, 42, 0.78) !important;
+                    backdrop-filter: blur(16px) !important;
+                    -webkit-backdrop-filter: blur(16px) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+                    border-radius: 9999px !important;
+                    padding: 4px 8px !important;
+                    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4) !important;
+                }
+                .size-tagwrap {
+                    animation: none !important;
+                    transform: none !important;
+                    margin: 0 !important;
+                    display: flex !important;
+                    align-items: center !important;
+                }
+                .size-tagwrap .string {
+                    display: none !important;
+                }
+                .size-tag-hit {
+                    min-width: 36px !important;
+                    min-height: 32px !important;
+                    height: 32px !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+                .size-tag {
+                    clip-path: none !important;
+                    width: auto !important;
+                    height: 30px !important;
+                    background: transparent !important;
+                    padding: 0 !important;
+                    transform: none !important;
+                    box-shadow: none !important;
+                }
+                .size-tag-face {
+                    clip-path: none !important;
+                    border-radius: 9999px !important;
+                    background: rgba(255, 255, 255, 0.08) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+                    color: #cbd5e1 !important;
+                    font-size: 12px !important;
+                    font-weight: 700 !important;
+                    padding: 0 10px !important;
+                    min-width: 34px !important;
+                    height: 30px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+                }
+                .size-tag-face:before,
+                .size-tag-face:after {
+                    display: none !important;
+                }
+                .size-tagwrap.on .size-tag {
+                    transform: none !important;
+                    box-shadow: none !important;
+                }
+                .size-tagwrap.on .size-tag-face {
+                    background: #2563eb !important;
+                    color: #ffffff !important;
+                    border-color: #60a5fa !important;
+                    box-shadow: 0 0 12px rgba(59, 130, 246, 0.6) !important;
+                    text-shadow: none !important;
+                }
             }
 
             /* مودال ثبت سفارش */
@@ -910,13 +1166,14 @@
     }
 
     function updateCatalogUI() {
-        const btn = document.getElementById('catalogFloatingBtn');
-        if (btn && storeData.products) {
-            btn.innerHTML = `📦 <span>مشاهده همه محصولات (${storeData.products.length})</span>`;
+        const badge = document.getElementById('catalogCountBadge');
+        if (badge && storeData.products) {
+            badge.textContent = storeData.products.length ? storeData.products.length : '';
+            badge.style.display = storeData.products.length ? 'inline-flex' : 'none';
         }
     }
 
-    // ۵. افزودن دکمه‌های شناور (مشاهده محصولات + پنل مدیریت)
+    // ۵. افزودن دکمه‌های شناور (مشاهده محصولات + پنل مدیریت) در قالب داک شیشه‌ای مدرن
     function addFloatingButtons() {
         if (document.getElementById('floatingActionsBar')) return;
         try {
@@ -926,18 +1183,39 @@
 
             const catalogBtn = document.createElement('button');
             catalogBtn.id = 'catalogFloatingBtn';
-            catalogBtn.className = 'floating-btn floating-btn-catalog';
-            catalogBtn.innerHTML = '📦 <span>مشاهده همه محصولات</span>';
+            catalogBtn.className = 'floating-dock-btn floating-dock-catalog';
+            catalogBtn.setAttribute('aria-label', 'مشاهده همه محصولات');
+            catalogBtn.innerHTML = `
+                <svg class="dock-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span>مشاهده همه محصولات</span>
+                <span class="catalog-count-badge" id="catalogCountBadge" style="${storeData.products && storeData.products.length ? '' : 'display:none;'}">${(storeData.products && storeData.products.length) || ''}</span>
+            `;
             catalogBtn.addEventListener('click', openCatalogModal);
+
+            const divider = document.createElement('div');
+            divider.className = 'floating-dock-divider';
 
             const adminLink = document.createElement('a');
             adminLink.id = 'adminFloatingBtn';
-            adminLink.className = 'floating-btn';
+            adminLink.className = 'floating-dock-btn floating-dock-admin';
             adminLink.href = getBasePath() + 'admin/';
             adminLink.target = '_blank';
-            adminLink.innerHTML = '⚙️ <span>پنل مدیریت</span>';
+            adminLink.setAttribute('aria-label', 'ورود به پنل مدیریت');
+            adminLink.innerHTML = `
+                <svg class="dock-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+                <span>پنل مدیریت</span>
+            `;
 
             bar.appendChild(catalogBtn);
+            bar.appendChild(divider);
             bar.appendChild(adminLink);
             document.body.appendChild(bar);
         } catch (e) {}
@@ -1038,20 +1316,23 @@
         }
     }
 
-    // ۷. اتصال داده‌های دیتابیس به پنجره Focus جزئیات محصول در رگال
+    // ۷. اتصال داده‌های دیتابیس به پنجره Focus جزئیات محصول در رگال طبق ترتیب مشخص‌شده
     function observeProductFocus() {
         try {
             const observer = new MutationObserver(function() {
                 const infoEl = document.querySelector('.focus-info .info');
                 const focusSlide = document.querySelector('.focus-slide');
+                const dockEl = document.getElementById('floatingActionsBar');
 
                 if (infoEl) {
+                    if (dockEl) dockEl.classList.add('in-focus');
+
                     const nameEl = infoEl.querySelector('.info-name');
                     if (nameEl) {
                         const prodName = nameEl.textContent.trim();
                         const matched = findProduct(prodName);
                         
-                        // تزریق برچسب‌های آویزان سایز در سمت چپ
+                        // تزریق برچسب‌های آویزان سایز در سمت چپ رگال (در موبایل چیپ‌های افقی بالا)
                         if (focusSlide) {
                             injectSizeHangingTags(focusSlide, matched);
                         }
@@ -1066,49 +1347,78 @@
                         }
                         syncActiveColorFromTags(matched);
 
-                        if (matched && !infoEl.dataset.metaInjected) {
-                            infoEl.dataset.metaInjected = 'true';
-                            
-                            let metaEl = infoEl.querySelector('.dynamic-product-meta');
-                            if (!metaEl) {
-                                metaEl = document.createElement('div');
-                                metaEl.className = 'dynamic-product-meta';
-                                
-                                const priceSpan = document.createElement('span');
-                                priceSpan.className = 'dynamic-price';
-                                priceSpan.innerText = matched.formatted_price || (matched.price ? matched.price.toLocaleString() + ' ' + (matched.currency || 'تومان') : '');
-                                
-                                const badge = document.createElement('span');
-                                badge.className = 'dynamic-badge ' + (matched.is_available ? 'badge-instock' : 'badge-outstock');
-                                badge.innerText = matched.is_available ? 'موجود در انبار' : 'اتمام موجودی';
+                        // حذف متای قدیمی در صورت وجود
+                        const oldMeta = infoEl.querySelector('.dynamic-product-meta');
+                        if (oldMeta) oldMeta.remove();
 
-                                metaEl.appendChild(priceSpan);
-                                metaEl.appendChild(badge);
+                        // (۱) نمای عقب و جلو
+                        const segEl = infoEl.querySelector('.seg');
+                        if (segEl && segEl.parentNode === infoEl && infoEl.firstElementChild !== segEl) {
+                            infoEl.insertBefore(segEl, infoEl.firstElementChild);
+                        }
 
-                                if (matched.title_fa) {
-                                    const faTitle = document.createElement('div');
-                                    faTitle.style.cssText = 'width: 100%; font-size: 13px; color: #cbd5e1; margin-top: 2px;';
-                                    faTitle.innerText = matched.title_fa;
-                                    metaEl.appendChild(faTitle);
-                                }
+                        // (۲) اسم محصول
+                        if (nameEl && segEl && segEl.nextSibling !== nameEl) {
+                            segEl.insertAdjacentElement('afterend', nameEl);
+                        }
 
-                                nameEl.insertAdjacentElement('afterend', metaEl);
+                        // عنوان فارسی زیر اسم محصول
+                        let faTitle = infoEl.querySelector('.dynamic-fa-title');
+                        if (matched && matched.title_fa) {
+                            if (!faTitle) {
+                                faTitle = document.createElement('div');
+                                faTitle.className = 'dynamic-fa-title';
                             }
+                            faTitle.textContent = matched.title_fa;
+                            nameEl.insertAdjacentElement('afterend', faTitle);
+                        } else if (faTitle) {
+                            faTitle.remove();
+                            faTitle = null;
+                        }
 
-                            const ctaBtn = infoEl.querySelector('.info-cta');
-                            if (ctaBtn) {
-                                ctaBtn.textContent = matched.is_available ? 'خرید / ثبت سفارش' : 'ناموجود';
-                                ctaBtn.removeAttribute('target');
-                                
+                        const lastHeaderEl = faTitle || nameEl;
+
+                        // (۳) موجودی انبار
+                        let stockEl = infoEl.querySelector('.dynamic-stock-wrapper');
+                        if (!stockEl) {
+                            stockEl = document.createElement('div');
+                            stockEl.className = 'dynamic-stock-wrapper';
+                        }
+                        const isAvailable = matched ? !!matched.is_available : true;
+                        stockEl.innerHTML = `<span class="dynamic-badge ${isAvailable ? 'badge-instock' : 'badge-outstock'}"><span class="badge-dot">●</span> ${isAvailable ? 'موجود در انبار' : 'اتمام موجودی'}</span>`;
+                        lastHeaderEl.insertAdjacentElement('afterend', stockEl);
+
+                        // (۴) قیمت
+                        let priceEl = infoEl.querySelector('.dynamic-price-wrapper');
+                        if (!priceEl) {
+                            priceEl = document.createElement('div');
+                            priceEl.className = 'dynamic-price-wrapper';
+                        }
+                        const formattedPrice = matched ? (matched.formatted_price || (matched.price ? matched.price.toLocaleString() + ' ' + (matched.currency || 'تومان') : '')) : '';
+                        priceEl.innerHTML = `<span class="dynamic-price">${formattedPrice}</span>`;
+                        stockEl.insertAdjacentElement('afterend', priceEl);
+
+                        // (۵) گزینه ثبت سفارش
+                        let ctaBtn = infoEl.querySelector('.info-cta');
+                        if (ctaBtn) {
+                            ctaBtn.className = 'info-cta dynamic-order-btn ' + (isAvailable ? 'btn-available' : 'btn-disabled');
+                            ctaBtn.removeAttribute('target');
+                            ctaBtn.removeAttribute('href');
+                            ctaBtn.setAttribute('type', 'button');
+                            ctaBtn.innerHTML = `<span>🛒</span> <span>${isAvailable ? 'خرید / ثبت سفارش' : 'اتمام موجودی'}</span>`;
+                            priceEl.insertAdjacentElement('afterend', ctaBtn);
+
+                            if (ctaBtn.dataset.boundProd !== prodName) {
+                                ctaBtn.dataset.boundProd = prodName;
                                 const newCta = ctaBtn.cloneNode(true);
                                 newCta.addEventListener('click', function(e) {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    if (!matched.is_available) {
+                                    if (!isAvailable) {
                                         alert('این محصول در حال حاضر ناموجود است.');
                                         return;
                                     }
-                                    if (matched.buy_url && matched.buy_url.trim() !== '') {
+                                    if (matched && matched.buy_url && matched.buy_url.trim() !== '') {
                                         window.open(matched.buy_url, '_blank');
                                     } else {
                                         openOrderModal(matched, window.__SELECTED_COLOR__, window.__SELECTED_SIZE__);
@@ -1119,8 +1429,7 @@
                         }
                     }
                 } else {
-                    const existingInfo = document.querySelector('.info');
-                    if (existingInfo) delete existingInfo.dataset.metaInjected;
+                    if (dockEl) dockEl.classList.remove('in-focus');
                     const existingSizes = document.getElementById('focusSizesWrap');
                     if (existingSizes) existingSizes.remove();
                 }
