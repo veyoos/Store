@@ -5904,17 +5904,8 @@
             })
         }
 
-        function s1({
-            hidden: t = !1
-        }) {
-            return (0, r.jsx)("a", {
-                href: "https://aradazr.site/",
-                target: "_blank",
-                rel: "noopener",
-                tabIndex: t ? -1 : void 0,
-                className: `absolute left-1/2 top-[90%] z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-ink px-[19px] py-[5px] text-[12px] font-medium uppercase tracking-[0.04em] text-ink transition-opacity duration-300 ${t?"pointer-events-none opacity-0":"opacity-100"}`,
-                children: "See Availability"
-            })
+        function s1() {
+            return null
         }
 
         function s5({
@@ -8322,11 +8313,7 @@
                 return e(), window.addEventListener("resize", e), () => window.removeEventListener("resize", e)
             }, [t]), (0, r.jsxs)("div", {
                 className: "info",
-                children: [(0, r.jsx)("h2", {
-                    className: "info-name",
-                    ref: u,
-                    children: t
-                }), (0, r.jsxs)("div", {
+                children: [(0, r.jsxs)("div", {
                     className: `seg${n?" seg-animate":""}`,
                     role: "group",
                     "aria-label": "Show front or back",
@@ -8354,13 +8341,15 @@
                         tabIndex: o ? void 0 : -1,
                         children: "BACK"
                     })]
+                }), (0, r.jsx)("h2", {
+                    className: "info-name",
+                    ref: u,
+                    children: t
                 }), (0, r.jsx)("a", {
                     className: "info-cta",
-                    href: "https://aradazr.site/",
-                    target: "_blank",
-                    rel: "noopener",
-                    "aria-label": `See availability of ${t} (opens in a new tab)`,
-                    children: "SEE AVAILABILITY ↗"
+                    href: "#",
+                    "aria-label": `Order ${t}`,
+                    children: "ثبت سفارش"
                 })]
             })
         }

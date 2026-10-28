@@ -1,5 +1,5 @@
 /* ==========================================================================
-   فایل اختصاصی تنظیم اندازه، موقعیت و ظاهر لباس‌ها در فروشگاه (Custom Styles)
+   فایل اختصاصی تنظیم اندازه، موقعیت و ظاهر فروشگاه (Custom Styles)
    محل فایل در هاست: public_html/store/custom.css (یا public_html/custom.css)
    شما می‌توانید این فایل را در cPanel File Manager باز کرده و به دلخواه تغییر دهید.
    ========================================================================== */
@@ -22,13 +22,397 @@ div[class*="bg-brand"] {
     display: none !important;
 }
 
-/* ۳. ابعاد کلی کادر هر لباس روی رگال (Rack Item Width) */
-/* در صورت تمایل به تغییر سایز کل رگال، خط زیر را فعال کنید: */
-.rack {
-    /* --iw: min(36vh, 22.5vw); */
+/* ۳. حذف کامل هرگونه دکمه یا لینک See Availability و aradazr */
+a[href*="aradazr.site"],
+.info-cta[href*="aradazr.site"] {
+    display: none !important;
 }
 
-/* ۴. تنظیم عکس لباس‌ها روی رگال (موقعیت، فیت و جابجایی) */
+/* ۴. داک شناور شیشه‌ای مدرن و لوکس پایین صفحه (کاتالوگ محصولات و پنل مدیریت) */
+.floating-actions-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 9999;
+    font-family: system-ui, -apple-system, sans-serif;
+    direction: rtl;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    border-radius: 9999px;
+    padding: 6px 8px;
+    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s;
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+}
+
+.floating-actions-bar.in-focus {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    transform: translateX(-50%) translateY(24px) scale(0.95) !important;
+}
+
+.floating-dock-btn {
+    border: none;
+    background: transparent;
+    color: #f1f5f9;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    outline: none;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.floating-dock-btn:hover {
+    transform: translateY(-1px);
+}
+
+.floating-dock-catalog {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    font-weight: 600;
+    border: 1px solid rgba(147, 197, 253, 0.35);
+    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35);
+}
+
+.floating-dock-catalog:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.55);
+}
+
+.catalog-count-badge {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 999px;
+    min-width: 18px;
+    text-align: center;
+    line-height: 16px;
+}
+
+.floating-dock-admin {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+}
+
+.floating-dock-admin:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.floating-dock-divider {
+    width: 1px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.16);
+    margin: 0 2px;
+}
+
+@media (max-width: 640px) {
+    .floating-actions-bar {
+        bottom: 16px;
+        padding: 5px 6px;
+        gap: 4px;
+        max-width: calc(100vw - 32px);
+    }
+    .floating-dock-btn {
+        font-size: 12px;
+        padding: 7px 12px;
+        gap: 5px;
+    }
+}
+
+/* ۵. استایل و ترتیب کارت جزئیات فوکوس محصول:
+   (۱) نمای عقب و جلو
+   (۲) اسم محصول
+   (۳) موجودی انبار
+   (۴) قیمت
+   (۵) گزینه ثبت سفارش */
+.focus-info {
+    z-index: 50;
+}
+
+.focus-info .info {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    text-align: center !important;
+    direction: rtl !important;
+}
+
+/* (۱) نمای عقب و جلو */
+.focus-info .info .seg {
+    order: 1 !important;
+    margin-top: 0 !important;
+    margin-bottom: 4px !important;
+    direction: ltr !important;
+}
+
+/* (۲) اسم محصول */
+.focus-info .info .info-name {
+    order: 2 !important;
+    margin: 0 !important;
+    height: auto !important;
+    line-height: 1.25 !important;
+    font-size: 22px !important;
+    letter-spacing: -0.01em !important;
+    direction: ltr !important;
+}
+
+.focus-info .info .dynamic-fa-title {
+    order: 2 !important;
+    font-size: 13px !important;
+    color: #94a3b8 !important;
+    font-weight: 500 !important;
+    margin-top: 2px !important;
+    line-height: 1.4 !important;
+    direction: rtl !important;
+}
+
+/* (۳) موجودی انبار */
+.focus-info .info .dynamic-stock-wrapper {
+    order: 3 !important;
+    margin: 2px 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+}
+
+.dynamic-badge {
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    padding: 3px 12px !important;
+    border-radius: 9999px !important;
+    letter-spacing: 0.02em !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+}
+
+.badge-instock {
+    background: rgba(34, 197, 94, 0.15) !important;
+    color: #4ade80 !important;
+    border: 1px solid rgba(34, 197, 94, 0.35) !important;
+}
+
+.badge-outstock {
+    background: rgba(239, 68, 68, 0.15) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.35) !important;
+}
+
+.badge-dot {
+    font-size: 9px !important;
+    line-height: 1 !important;
+}
+
+/* (۴) قیمت */
+.focus-info .info .dynamic-price-wrapper {
+    order: 4 !important;
+    margin: 2px 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+}
+
+.dynamic-price {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    color: #f8fafc !important;
+    direction: rtl !important;
+    letter-spacing: -0.01em !important;
+}
+
+/* (۵) گزینه ثبت سفارش */
+.focus-info .info .info-cta,
+.focus-info .info .dynamic-order-btn {
+    order: 5 !important;
+    margin-top: 6px !important;
+    height: auto !important;
+    border: none !important;
+    border-bottom: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+    color: #ffffff !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    padding: 9px 26px !important;
+    border-radius: 9999px !important;
+    letter-spacing: 0.02em !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4) !important;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.focus-info .info .info-cta:after,
+.focus-info .info .dynamic-order-btn:after {
+    display: none !important;
+}
+
+.focus-info .info .info-cta:hover,
+.focus-info .info .dynamic-order-btn:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.55) !important;
+    opacity: 1 !important;
+}
+
+.focus-info .info .dynamic-order-btn.btn-disabled {
+    background: rgba(100, 116, 139, 0.3) !important;
+    color: #94a3b8 !important;
+    border: 1px solid rgba(100, 116, 139, 0.3) !important;
+    box-shadow: none !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
+
+/* ۶. انتخاب سایز در صفحه فوکوس: */
+/* در دسکتاپ: برچسب‌های آویزان در سمت چپ پیراهن */
+.focus-sizes-wrap {
+    right: calc(var(--fiw, 400px) * .44);
+    top: calc(var(--fiw, 400px) * .08);
+    --tag-string: 34px;
+    --tag-step: 18px;
+    position: absolute;
+    z-index: 100;
+    pointer-events: auto;
+    direction: ltr;
+}
+
+.size-tags {
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 6px;
+    pointer-events: none;
+}
+
+/* در موبایل: چیپ‌های افقی شیک و لمسی بالای چوب‌لباسی بدون نخ‌های عمودی و شلوغی */
+@media (max-width: 640px) {
+    .focus-sizes-wrap {
+        position: absolute !important;
+        left: 0 !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+        top: -46px !important;
+        z-index: 100 !important;
+        pointer-events: auto !important;
+        direction: ltr !important;
+        width: auto !important;
+        max-width: 90vw !important;
+        display: flex !important;
+        justify-content: center !important;
+    }
+
+    .size-tags {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        pointer-events: auto !important;
+        background: rgba(15, 23, 42, 0.78) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 9999px !important;
+        padding: 4px 8px !important;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .size-tagwrap {
+        animation: none !important;
+        transform: none !important;
+        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    .size-tagwrap .string {
+        display: none !important;
+    }
+
+    .size-tag-hit {
+        min-width: 36px !important;
+        min-height: 32px !important;
+        height: 32px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .size-tag {
+        clip-path: none !important;
+        width: auto !important;
+        height: 30px !important;
+        background: transparent !important;
+        padding: 0 !important;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    .size-tag-face {
+        clip-path: none !important;
+        border-radius: 9999px !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        color: #cbd5e1 !important;
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        padding: 0 10px !important;
+        min-width: 34px !important;
+        height: 30px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    .size-tag-face:before,
+    .size-tag-face:after {
+        display: none !important;
+    }
+
+    .size-tagwrap.on .size-tag {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    .size-tagwrap.on .size-tag-face {
+        background: #2563eb !important;
+        color: #ffffff !important;
+        border-color: #60a5fa !important;
+        box-shadow: 0 0 12px rgba(59, 130, 246, 0.6) !important;
+        text-shadow: none !important;
+    }
+}
+
+/* ۷. تنظیم عکس لباس‌ها روی رگال (موقعیت، فیت و جابجایی) */
 .garment-layer img {
     width: 100% !important;
     height: 100% !important;
@@ -36,13 +420,11 @@ div[class*="bg-brand"] {
     max-height: 100% !important;
     object-fit: contain !important;
     object-position: center top !important;
-    /* اعمال جابجایی افقی/عمودی و مقیاس: */
     transform: translate(var(--custom-left, 0px), var(--custom-top, 0px)) scale(var(--custom-scale, 1)) !important;
     transform-origin: center top !important;
 }
 
-/* ۵. تنظیم اختصاصی برای نمای کناری لباس روی رگال (Side View) */
-/* scaleX(0.75) عرض سه‌چهارم است؛ برای عرض کامل ۱۰۰٪ می‌توانید scaleX را 1 بگذارید */
+/* نمای کناری لباس روی رگال (Side View) */
 .garment-layer.layer-side img,
 .layer-side img[src*="upload"],
 .layer-side img[src*="uploads"] {
@@ -54,7 +436,7 @@ div[class*="bg-brand"] {
     transform-origin: center top !important;
 }
 
-/* ۶. تنظیم اختصاصی برای نمای روبروی لباس روی رگال (Front View) */
+/* نمای روبروی لباس روی رگال (Front View) */
 .garment-layer.layer-front img,
 .layer-front img[src*="upload"],
 .layer-front img[src*="uploads"] {
@@ -64,12 +446,6 @@ div[class*="bg-brand"] {
     object-position: center top !important;
     transform: translate(var(--custom-left, 0px), var(--custom-top, 0px)) scale(var(--custom-scale, 1)) !important;
     transform-origin: center top !important;
-}
-
-/* ۷. تنظیم اختصاصی کانتینر لباس برای جابجایی مستقیم (در صورت تمایل) */
-.garment-layer.layer-custom {
-    /* مثال برای جابجایی عمودی مستقیم کادر: */
-    /* top: calc(var(--rod) / 2 + 10px) !important; */
 }
 
 /* ۸. تنظیم اندازه عکس در صفحه فوکوس و جزئیات محصول (Focus View) */
